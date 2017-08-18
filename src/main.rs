@@ -1,19 +1,19 @@
-mod cpu;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
+mod cpu;
 
 fn main() {
-    println!("Hello, world!");
-    let file = File::open(&Path::new("../assets/Tetris (World).gb");
-    let mut rom_buf = [0u8; 12];
-    let bytes_read = file.read(&mut rom_buf).unwrap();
-    if bytes_read != rom_buf.len() {
-        println!("{} bytes read, but {} expected ...", bytes_read, rom_buf.len());
-        // handle error or bail out
-    }
-    let processor : cpu::cpu::CPU = Default::default();
-
-    println!("{}", processor);
+    let path = Path::new("assets/Tetris (World).gb");
+    let rom_buf = read_bin(path);
+    let mut processor : cpu::cpu::CPU = Default::default();
+    processor.run(rom_buf);
 }
 
-fn read_bin<P: >(path: P) -> 
+
+fn read_bin<P: AsRef<Path>>(path: P) -> Box<[u8]> {
+    let mut file = File::open(path).unwrap();
+    let mut file_buf = Vec::new();
+    file.read_to_end(&mut file_buf).unwrap();
+    file_buf.into_boxed_slice()
+}

@@ -1,5 +1,5 @@
 [package]
-name = "gbremu"
+name = "RustikGB"
 version = "0.1.0"
 authors = ["Borja Lorente <blorente@ucm.es>"]
 
