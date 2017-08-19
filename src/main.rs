@@ -7,6 +7,8 @@ fn main() {
     let path = Path::new("assets/Tetris (World).gb");
     let rom_buf = read_bin(path);
     let mut processor : cpu::cpu::CPU = Default::default();
+    let cartridge = cpu::cartridge::Cartridge::new(&rom_buf);
+    println!("Game data\n==========\n{}", cartridge);
     processor.run(rom_buf);
 }
 
