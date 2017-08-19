@@ -13,9 +13,5 @@ target/
 # Don't store local roms
 /assets
 
-<<<<<<< 2f25bc12dab0d5932c6f585f0a6d92c8f1aa94b4
 # Don't store editor stuff
 .vscode
-=======
-/.vscode
->>>>>>> HI
