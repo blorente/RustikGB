@@ -1,5 +1,6 @@
 use std::fmt;
 use std::marker;
+use cpu::instructions;
 
 #[derive(Default)]
 struct Register {
@@ -7,6 +8,12 @@ struct Register {
 }
 
 impl Register {
+    pub fn new(value: u16) -> Self {
+        Register {
+            val: value
+        }
+    }
+
     pub fn value(&self) -> u16 {
         self.val
     }
@@ -49,27 +56,10 @@ impl fmt::Display for RegBank {
 impl Default for RegBank {
     fn default() -> Self {
         RegBank {
-            af: Register {val: 0xABCD},
-            bc: Register {val: 0x0000},
-            de: Register {val: 0x0000},
-            hl: Register {val: 0x0000},
-        }
-    }
-}
-
-
-pub struct Instruction<'i> {
-    dissassembly : &'static str,
-    operand_num : u8,
-    execution : Box<Fn(&mut CPU<'i>, u16) + 'i>,
-}
-
-impl<'i> Instruction<'i> {
-    pub fn new<F: Fn(&mut CPU<'i>, u16) + 'i> (dissassembly: &'static str, operand_num : u8, func: F) -> Instruction<'i> {
-        Instruction {
-            dissassembly: dissassembly,
-            operand_num: operand_num,
-            execution: Box::new(func)
+            af: Register {val: 0x01B0},
+            bc: Register {val: 0x0013},
+            de: Register {val: 0x00D8},
+            hl: Register {val: 0x014D},
         }
     }
 }
@@ -78,7 +68,7 @@ pub struct CPU <'i> {
     registers : RegBank,
     sp : Register,
     pc : Register,
-    instructions : [Instruction<'i>; 256]
+    instructions : [instructions::Instruction<'i>; 256]
 }
 
 
@@ -86,9 +76,9 @@ impl<'i>  Default for CPU<'i> {
     fn default() -> CPU<'i> {
         CPU {
             registers : Default::default(),
-            instructions : create_isa(),
-            sp : Default::default(),            
-            pc : Default::default(),
+            instructions : instructions::create_isa(),
+            sp : Register::new(0xFFFE),            
+            pc : Register::new(0x0100),
         }
     }
 }
@@ -106,280 +96,15 @@ impl<'i> CPU<'i> {
     pub fn run(&mut self, rom_buf: Box<[u8]>) {
         loop {
             let opcode = rom_buf[self.pc.value() as usize];
-            println!("Running inst {:X}", opcode);
+            println!("Running inst {:X}", opcode);            
             if self.instructions[opcode as usize].dissassembly == "Unimp" {
                 println!("Unimplemented instruction 0x{:X}", opcode);
                 println!("Processor state:\n{}", self);
                 break;
-            }   
+            } else {
+                let op = self.instructions[opcode as usize].execute(&mut self, opcode);
+            }
         }
     }
-}
-
-macro_rules! inst {
-    ($x:expr, $y:expr, $f:expr) => {{
-        let inst = Instruction::new($x, $y, $f);
-        inst
-    }}    
-}
-pub fn create_isa <'i>() -> [Instruction<'i>; 256]{
-    [
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),         
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);}), 
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x);})
-    ]
 }
 
