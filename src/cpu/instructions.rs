@@ -195,7 +195,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x); 1}),
         inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x); 1}), 
         inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x); 1}),
-        inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x); 1}), 
+        inst!("JP",     0, |cpu, x|{jump!(true) 4}), 
         inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x); 1}),
         inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x); 1}), 
         inst!("Unimp", 0, |cpu, x|{println!("Unimplemented inst with params {}", x); 1}),

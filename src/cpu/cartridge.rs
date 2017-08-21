@@ -98,6 +98,16 @@ impl Cartridge {
     fn copy_raw_rom(raw_rom: &Box<[u8]>) -> Box<[u8]> {
         raw_rom.clone()
     }
+
+    /// Read the byte in addr
+    pub fn read_byte(&self, addr: u16) -> u8 {
+        self.data[addr as usize]
+    }
+
+    /// Read the bytes in [addr, addr + 1]
+    pub fn read_word(&self, addr: u16) -> u16 {
+        ((self.data[addr as usize] as u16) << 8) | (self.data[(addr + 1) as usize]) as u16
+    }
 }
 
 impl fmt::Display for Cartridge {
