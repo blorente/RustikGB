@@ -68,7 +68,7 @@ pub struct CPU <'i> {
     registers : RegBank,
     sp : Register,
     pc : Register,
-    instructions : [instructions::Instruction<'i>; 256]
+    instructions: instructions::InstructionSet<'i>,
 }
 
 
@@ -76,7 +76,7 @@ impl<'i>  Default for CPU<'i> {
     fn default() -> CPU<'i> {
         CPU {
             registers : Default::default(),
-            instructions : instructions::create_isa(),
+            instructions : instructions::InstructionSet::new(),
             sp : Register::new(0xFFFE),            
             pc : Register::new(0x0100),
         }
@@ -97,13 +97,12 @@ impl<'i> CPU<'i> {
         loop {
             let opcode = rom_buf[self.pc.value() as usize];
             println!("Running inst {:X}", opcode);            
-            if self.instructions[opcode as usize].dissassembly == "Unimp" {
+            if !self.instructions.is_implemented(opcode) {
                 println!("Unimplemented instruction 0x{:X}", opcode);
                 println!("Processor state:\n{}", self);
                 break;
-            } else {
-                let op = self.instructions[opcode as usize].execute(&mut self, opcode);
-            }
+            } 
+            let cycles = self.instructions.exec(self, opcode);            
         }
     }
 }
