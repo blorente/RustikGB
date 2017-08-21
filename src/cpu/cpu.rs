@@ -33,6 +33,8 @@ impl Register {
     pub fn w_hi(& mut self, data: u8) {
         self.val = (self.val & 0x00FF) | ((data as u16) << 8);
     }
+
+    pub fn increase_by(&mut self, amount: u16) {self.val += amount;}
  }
 
 
@@ -64,26 +66,24 @@ impl Default for RegBank {
     }
 }
 
-pub struct CPU <'i> {
+pub struct CPU {
     registers : RegBank,
     sp : Register,
     pc : Register,
-    instructions: instructions::InstructionSet<'i>,
 }
 
 
-impl<'i>  Default for CPU<'i> {
-    fn default() -> CPU<'i> {
+impl  Default for CPU {
+    fn default() -> CPU {
         CPU {
             registers : Default::default(),
-            instructions : instructions::InstructionSet::new(),
             sp : Register::new(0xFFFE),            
             pc : Register::new(0x0100),
         }
     }
 }
 
-impl<'i> fmt::Display for CPU<'i> {
+impl fmt::Display for CPU {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         writeln!(fmt, "{}sp: 0x{:<4X}\npc: 0x{:<4X}", 
                 self.registers,
@@ -92,17 +92,20 @@ impl<'i> fmt::Display for CPU<'i> {
     }
 }
 
-impl<'i> CPU<'i> {
+impl CPU {
     pub fn run(&mut self, rom_buf: Box<[u8]>) {
+        let mut instr_set = instructions::InstructionSet::new();
         loop {
             let opcode = rom_buf[self.pc.value() as usize];
             println!("Running inst {:X}", opcode);            
-            if !self.instructions.is_implemented(opcode) {
+            if !instr_set.is_implemented(opcode) {
                 println!("Unimplemented instruction 0x{:X}", opcode);
                 println!("Processor state:\n{}", self);
                 break;
-            } 
-            let cycles = self.instructions.exec(self, opcode);            
+            } else {
+                let cycles = instr_set.exec(self, opcode);  
+                self.pc.increase_by(1); 
+            }         
         }
     }
 }
