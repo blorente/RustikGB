@@ -67,20 +67,10 @@ impl Default for RegBank {
 }
 
 pub struct CPU {
+    bus: bus::BUS,
     registers : RegBank,
     pub sp : Register,
     pub pc : Register,
-}
-
-
-impl  Default for CPU {
-    fn default() -> CPU {
-        CPU {
-            registers : Default::default(),
-            sp : Register::new(0xFFFE),            
-            pc : Register::new(0x0100),
-        }
-    }
 }
 
 impl fmt::Display for CPU {
@@ -93,11 +83,20 @@ impl fmt::Display for CPU {
 }
 
 impl CPU {
-    pub fn run(&mut self, bus: &bus::BUS) {
+    pub fn new(bus: bus::BUS) -> Self {
+        CPU {
+            bus: bus,
+            registers : Default::default(),
+            sp : Register::new(0xFFFE),            
+            pc : Register::new(0x0100),
+        }
+    }
+
+    pub fn run(&mut self) {
         let mut instr_set = instructions::InstructionSet::new();
         loop {            
             println!("PC: {:<4X}",self.pc.value() );
-            let opcode = bus.read_byte(self.pc.value());
+            let opcode = self.read_byte(self.pc.value());
             println!("Running inst {:X}", opcode);            
             if !instr_set.is_implemented(opcode) {
                 println!("Unimplemented instruction 0x{:X}", opcode);
@@ -108,6 +107,22 @@ impl CPU {
                 self.pc.increase_by(1); 
             }         
         }
+    }
+
+    pub fn read_byte(&self, addr: u16) -> u8 {
+        self.bus.read_byte(addr)
+    }
+
+    pub fn write_byte(&self, addr: u16, val: u8) {
+        self.bus.write_byte(addr, val)
+    }
+
+    pub fn read_word(&self, addr: u16) -> u16 {
+        self.bus.read_word(addr)
+    }
+
+    pub fn write_word(&self, addr: u16, val: u16) {
+        self.bus.write_word(addr, val)
     }
 }
 

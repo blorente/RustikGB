@@ -6,11 +6,11 @@ mod hardware;
 fn main() {
     let path = Path::new("assets/Tetris (World).gb");
     let rom_buf = read_bin(path);
-    let mut processor : hardware::cpu::CPU = Default::default();
     let cartridge = hardware::cartridge::Cartridge::new(&rom_buf);
     println!("Game data\n==========\n{}", &cartridge);
     let bus = hardware::bus::BUS::new(cartridge);
-    processor.run(&bus);
+    let mut processor : hardware::cpu::CPU = hardware::cpu::CPU::new(bus);
+    processor.run();
 }
 
 

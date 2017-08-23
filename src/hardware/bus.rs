@@ -80,7 +80,7 @@ impl BUS {
         0xFFFF
     }
 
-    pub fn write_byte(addr: u16, val: u8) {
+    pub fn write_byte(&self, addr: u16, val: u8) {
     }
 
     pub fn read_word(&self, addr: u16) -> u16 {
@@ -90,7 +90,7 @@ impl BUS {
         0xFFFF
     }
 
-    pub fn write_word(addr: u16, val: u16) {
+    pub fn write_word(&self, addr: u16, val: u16) {
 
     }
 }
