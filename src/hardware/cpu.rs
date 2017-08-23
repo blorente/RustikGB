@@ -1,7 +1,6 @@
 use std::fmt;
-use std::marker;
-use cpu::instructions;
-use cpu::cartridge;
+use hardware::instructions;
+use hardware::bus;
 
 #[derive(Default)]
 pub struct Register {
@@ -94,10 +93,11 @@ impl fmt::Display for CPU {
 }
 
 impl CPU {
-    pub fn run(&mut self, rom_buf: &cartridge::Cartridge) {
+    pub fn run(&mut self, bus: &bus::BUS) {
         let mut instr_set = instructions::InstructionSet::new();
-        loop {
-            let opcode = rom_buf.read_byte(self.pc.value());
+        loop {            
+            println!("PC: {:<4X}",self.pc.value() );
+            let opcode = bus.read_byte(self.pc.value());
             println!("Running inst {:X}", opcode);            
             if !instr_set.is_implemented(opcode) {
                 println!("Unimplemented instruction 0x{:X}", opcode);

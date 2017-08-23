@@ -1,4 +1,4 @@
-use cpu::cpu::CPU;
+use hardware::cpu::CPU;
 
 struct Instruction<'i> {
     pub dissassembly : &'static str,
