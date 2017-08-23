@@ -34,6 +34,10 @@ impl Register {
         self.val = (self.val & 0x00FF) | ((data as u16) << 8);
     }
 
+    pub fn w_all(&mut self, data: u16) {
+        self.val = data;
+    }
+
     pub fn increase_by(&mut self, amount: u16) {self.val += amount;}
  }
 
@@ -95,9 +99,10 @@ impl CPU {
     pub fn run(&mut self) {
         let mut instr_set = instructions::InstructionSet::new();
         loop {            
-            println!("PC: {:<4X}",self.pc.value() );
             let opcode = self.read_byte(self.pc.value());
-            println!("Running inst {:X}", opcode);            
+            println!("PC: {:<4X}, Opcode {:<2X}",
+                    self.pc.value(),
+                    opcode);      
             if !instr_set.is_implemented(opcode) {
                 println!("Unimplemented instruction 0x{:X}", opcode);
                 println!("Processor state:\n{}", self);

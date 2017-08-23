@@ -50,7 +50,7 @@ macro_rules! inst {
 }
 
 macro_rules! pushall {
-    ( $( $opcode: expr, $x:expr ),* ) => {
+    ( $( [$opcode: expr, $x:expr] ),* ) => {
         {
             let mut temp_vec : Vec<Instruction<'i>> = (0..256).map(|x|{inst!("Unimp", 0, |cpu, x|{1})}).collect();
             $(
@@ -61,9 +61,21 @@ macro_rules! pushall {
     };
 }
 
+macro_rules! jp_imm_cond {
+     ($cond:expr, $cpu:expr) => {{
+        if $cond {
+            $cpu.pc.increase_by(1);
+            let addr = $cpu.pc.value();
+            let imm = $cpu.read_word(addr);
+            $cpu.pc.w_all(imm); 
+        }
+    }}    
+}
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
-       0x00, inst!( "NOP", 0, |cpu, x|{1})
+       [0x00, inst!( "NOP", 0, |cpu, op|{1})],
+       [0xC3, inst!( "NOP", 0, |cpu, op|{jp_imm_cond!(true, cpu); 3})]
     )
 }
