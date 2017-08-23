@@ -4,7 +4,7 @@ use cpu::instructions;
 use cpu::cartridge;
 
 #[derive(Default)]
-struct Register {
+pub struct Register {
     val: u16,
 }
 
@@ -104,7 +104,7 @@ impl CPU {
                 println!("Processor state:\n{}", self);
                 break;
             } else {
-                let cycles = instr_set.exec(self, cartridge, opcode);  
+                let cycles = instr_set.exec(self, opcode);  
                 self.pc.increase_by(1); 
             }         
         }

@@ -9,7 +9,7 @@ fn main() {
     let mut processor : cpu::cpu::CPU = Default::default();
     let cartridge = cpu::cartridge::Cartridge::new(&rom_buf);
     println!("Game data\n==========\n{}", cartridge);
-    processor.run(cartridge);
+    processor.run(&cartridge);
 }
 
 
