@@ -106,7 +106,9 @@ impl Cartridge {
 
     /// Read the bytes in [addr, addr + 1]
     pub fn read_word(&self, addr: u16) -> u16 {
-        ((self.data[addr as usize] as u16) << 8) | (self.data[(addr + 1) as usize]) as u16
+        let lo = (self.data[addr as usize] as u16);
+        let hi = (self.data[(addr + 1) as usize] as u16) << 8;
+        (hi | lo)
     }
 }
 
