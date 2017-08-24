@@ -1,88 +1,98 @@
 use std::fmt;
+use std::num;
 use hardware::instructions;
 use hardware::bus;
 
 #[derive(Default)]
-pub struct Register {
-    val: u16,
+pub struct Register<T: Copy> {
+    val: T,
 }
 
-impl Register {
-    pub fn new(value: u16) -> Self {
+impl<T: Copy> Register<T> {
+    pub fn new(value: T) -> Self {
         Register {
             val: value
         }
     }
 
-    pub fn value(&self) -> u16 {
-        self.val
+    pub fn r(&self) -> T {
+        let ret = self.val;
+        ret
     }
 
-    pub fn r_hi(&self) -> u8 {
-        ((self.val & 0xFF00) >> 8) as u8
-    }
-
-    pub fn r_lo(&self) -> u8 {
-        (self.val & 0x00FF) as u8
-    }
-
-    pub fn w_lo(& mut self, data: u8) {
-        self.val = (self.val & 0xFF00) | data as u16;
-    }
-
-    pub fn w_hi(& mut self, data: u8) {
-        self.val = (self.val & 0x00FF) | ((data as u16) << 8);
-    }
-
-    pub fn w_all(&mut self, data: u16) {
+    pub fn w(& mut self, data: T) {
         self.val = data;
     }
-
-    pub fn increase_by(&mut self, amount: u16) {self.val += amount;}
  }
 
 
 pub struct RegBank {
-    pub af : Register,
-    pub bc : Register,
-    pub de : Register,
-    pub hl : Register,
+    pub a : Register<u8>,
+    pub f : Register<u8>,
+    pub b : Register<u8>,
+    pub c : Register<u8>,
+    pub d : Register<u8>,
+    pub e : Register<u8>,
+    pub h : Register<u8>,
+    pub l : Register<u8>,
 }
 
 impl fmt::Display for RegBank {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         writeln!(fmt, "a: 0x{:<2X} | f: 0x{:<2X}\nb: 0x{:<2X} | c: 0x{:<2X}\nd: 0x{:<2X} | e: 0x{:<2X}\nh: 0x{:<2X} | l: 0x{:<2X}",
-        self.af.r_hi(), self.af.r_lo(),
-        self.bc.r_hi(), self.bc.r_lo(),
-        self.de.r_hi(), self.de.r_lo(),
-        self.hl.r_hi(), self.hl.r_lo())
+        self.a.r(), self.f.r(),
+        self.b.r(), self.c.r(),
+        self.d.r(), self.e.r(),
+        self.h.r(), self.l.r())
     }
 }
 
 impl Default for RegBank {
     fn default() -> Self {
         RegBank {
-            af: Register {val: 0x01B0},
-            bc: Register {val: 0x0013},
-            de: Register {val: 0x00D8},
-            hl: Register {val: 0x014D},
+            a: Register {val: 0x01},
+            f: Register {val: 0xB0},
+            b: Register {val: 0x00},
+            c: Register {val: 0x13},
+            d: Register {val: 0x00},
+            e: Register {val: 0xD8},
+            h: Register {val: 0x01},
+            l: Register {val: 0x4D}
         }
+    }
+}
+
+impl RegBank {
+    pub fn af(&self) -> u16 {
+        (self.a.r() as u16) << 8 | (self.f.r() as u16)
+    }
+
+    pub fn bc(&self) -> u16 {
+        (self.b.r() as u16) << 8 | (self.c.r() as u16)
+    }
+
+    pub fn de(&self) -> u16 {
+        (self.d.r() as u16) << 8 | (self.e.r() as u16)
+    }
+
+    pub fn hl(&self) -> u16 {
+        (self.h.r() as u16) << 8 | (self.l.r() as u16)
     }
 }
 
 pub struct CPU {
     bus: bus::BUS,
     pub regs : RegBank,
-    pub sp : Register,
-    pub pc : Register,
+    pub sp : Register<u16>,
+    pub pc : Register<u16>,
 }
 
 impl fmt::Display for CPU {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         writeln!(fmt, "{}sp: 0x{:<4X}\npc: 0x{:<4X}", 
                 self.regs,
-                self.sp.value(),
-                self.pc.value())
+                self.sp.r(),
+                self.pc.r())
     }
 }
 
@@ -106,18 +116,19 @@ impl CPU {
     pub fn run(&mut self) {
         let mut instr_set = instructions::InstructionSet::new();
         loop {            
-            let opcode = self.read_byte(self.pc.value());
+            let opcode = self.read_byte(self.pc.r());
             println!("PC: {:<4X}, Opcode {:<2X}",
-                    self.pc.value(),
+                    self.pc.r(),
                     opcode);      
             if !instr_set.is_implemented(opcode) {
                 println!("Unimplemented instruction 0x{:X}", opcode);
                 println!("Processor state:\n{}", self);
                 break;
             } else {
-                let cycles = instr_set.exec(self, opcode);  
-                self.pc.increase_by(1); 
-            }         
+                let cycles = instr_set.exec(self, opcode); 
+                let pcval = self.pc.r() + 1;
+                self.pc.w(pcval); 
+            }
         }
     }
 
@@ -138,16 +149,18 @@ impl CPU {
     }
 
     pub fn is_flag_set(&self, flag: CPUFlags) -> bool {
-        self.regs.af.r_lo() & (flag as u8) > 0
+        self.regs.f.r() & (flag as u8) > 0
     }
 
     pub fn set_flag(&mut self, flag: CPUFlags, val: bool) {
-        if (val) {
-            self.regs.af.val = self.regs.af.val | (flag as u16)
+        if val {
+            let new_f = self.regs.f.r() | flag as u8;
+            self.regs.f.w(new_f);
         } else {
-            self.regs.af.val = self.regs.af.val & !(flag as u16)
+            let new_f = self.regs.f.r() & !(flag as u8);
+            self.regs.f.w(new_f); 
         }
-        self.regs.af.val &= 0xFFF0;
+        self.regs.f.val &= 0xF0;
     }
 }
 
