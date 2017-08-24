@@ -159,6 +159,15 @@ fn ld_a(val: u8, cpu: &mut CPU) {
     cpu.regs.a.w(val);
 }
 
+fn ldh(cpu: &mut CPU, store_into_a: bool) {
+    let offset = cpu.fetch_byte_immediate();
+    let addr : u16 = 0xFF00u16.wrapping_add(offset as u16);
+    match store_into_a {
+        true => {let val = cpu.read_byte(addr); cpu.regs.a.w(val);}
+        false => {let val = cpu.regs.a.r(); cpu.write_byte(addr, val);}
+    }
+}
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -220,7 +229,10 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xAF, inst!("XOR A,A", |cpu, op|{xor(cpu.regs.a.r(), cpu); 1})],
 
         [0xC3, inst!( "JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
+
+        [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{ldh(cpu, false);3})],
         
+        [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{ldh(cpu, true); 3})],
         [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_a(cpu.read_byte(addr), cpu); 4})]
 
