@@ -27,12 +27,14 @@ impl Debugger {
         }
     }
 
-    fn stop_and_ask(&mut self, cpu: &CPU) {    
+    fn stop_and_ask(&mut self, cpu: &CPU) {   
+        println!("DEBUGGER");
+        println!("================");
         println!("Program stopped at address 0x{:X}", cpu.pc.r());
         println!("Processor state:\n{}", cpu);
 
         let mut good_command = false;
-        print!("\nDebug Command: ");
+        print!("Debug Command: ");
         while !good_command {
             print!("\nDebug Command: ");
             let command: String = read!();
@@ -59,8 +61,8 @@ macro_rules! hash {
 }
 
 fn create_breakpoints() -> HashSet<u16> {
-    let mut breakpoints = hash![
-        0x28C
+    let breakpoints = hash![
+        0x28B
     ];
     breakpoints
 }
