@@ -139,6 +139,22 @@ macro_rules! dec {
     };
 }
 
+
+enum JumpImmCond {NZ, Z, NC, C}
+fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond) -> bool {
+    let old_pc = cpu.pc.r().wrapping_add(1);
+    let offset = cpu.fetch_byte_immediate() as i8;
+    let target_addr = (cpu.pc.r() as u32 as i32 + offset as i32) as u16;
+    let new_pc: u16 =  match cond {
+        JumpImmCond::NZ => {if !cpu.is_flag_set(CPUFlags::Z) {target_addr} else {old_pc} }
+        JumpImmCond::Z => {if cpu.is_flag_set(CPUFlags::Z) {target_addr} else {old_pc} }
+        JumpImmCond::NC => {if !cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc} }
+        JumpImmCond::C => {if cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc} }
+    };
+    cpu.pc.w(new_pc);
+    new_pc != old_pc
+}
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -155,15 +171,19 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x1D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.e, cpu, false); 1})],      
         [0x1E, inst!("LD E,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],
 
+        [0x20, inst!("JR NZ,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NZ){3} else {2}})],
         [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.h, cpu.regs.l, cpu); 3})],      
         [0x25, inst!("DEC H", |cpu, op|{dec!(cpu.regs.h, cpu, false); 1})],
-        [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],              
+        [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],  
+        [0x28, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::Z){3} else {2}})],            
         [0x2D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.l, cpu, false); 1})],
         [0x2E, inst!("LD L,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.l, cpu); 2})],
 
+        [0x30, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NC){3} else {2}})],  
         [0x31, inst!("LD SP,nn", |cpu, op|{load_word_imm_u16!(cpu.sp, cpu); 3})],
         [0x32, inst!("LDD (HL-),A", |cpu, op|{store_and_decrement(cpu); 3})],            
         [0x35, inst!("DEC (HL)", |cpu, op|{dec!(cpu.regs.l, cpu, true); 3})],
+        [0x38, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::C){3} else {2}})],  
 
         [0x88, inst!("ADC A,B", |cpu, op|{add_carry(cpu.regs.b.r(), cpu); 1})],
         [0x89, inst!("ADC A,C", |cpu, op|{add_carry(cpu.regs.c.r(), cpu); 1})],
