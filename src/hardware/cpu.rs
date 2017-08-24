@@ -171,7 +171,7 @@ impl CPU {
         self.bus.read_byte(addr)
     }
 
-    pub fn write_byte(&self, addr: u16, val: u8) {
+    pub fn write_byte(&mut self, addr: u16, val: u8) {
         self.bus.write_byte(addr, val)
     }
 
@@ -179,7 +179,7 @@ impl CPU {
         self.bus.read_word(addr)
     }
 
-    pub fn write_word(&self, addr: u16, val: u16) {
+    pub fn write_word(&mut self, addr: u16, val: u16) {
         self.bus.write_word(addr, val)
     }
 

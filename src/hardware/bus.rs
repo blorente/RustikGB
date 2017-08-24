@@ -42,9 +42,23 @@ impl MemoryRegion {
     }
 }
 
+struct RAM {
+    pub storage: Vec<u8>
+}
+
+impl RAM {
+    pub fn new(size: usize) -> Self {
+        RAM {
+            storage: vec![0x0; size]
+        }
+    }
+}
+
 
 pub struct BUS {
     cartridge : Cartridge,
+    storage_ram: RAM,
+    
 
     // Memory regions
     region_rom: MemoryRegion,
@@ -61,6 +75,7 @@ impl BUS {
     pub fn new(cartridge: Cartridge) -> Self {
         BUS {
             cartridge: cartridge,
+            storage_ram: RAM::new((INTERNAL_RAM_END - INTERNAL_RAM_START + 1) as usize),
 
             region_rom: MemoryRegion::new(ROM_START, ROM_END),
             region_graphics: MemoryRegion::new(GRAPHICS_RAM_START, GRAPHICS_RAM_END),
@@ -76,22 +91,32 @@ impl BUS {
     pub fn read_byte(&self, addr: u16) -> u8 {
         if self.region_rom.in_region(addr) {
             return self.cartridge.read_byte(addr)
+        } else if self.region_ram.in_region(addr) | self.region_ram_echo.in_region(addr) {
+            let tru_addr = addr - self.region_ram.start;
+            return self.storage_ram.storage[tru_addr as usize];
         }
         panic!("Trying to read byte from unrecognized address: 0x{:X}", addr);
     }
 
-    pub fn write_byte(&self, addr: u16, val: u8) {
-        panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
+    pub fn write_byte(&mut self, addr: u16, val: u8) {
+        if self.region_ram.in_region(addr) | self.region_ram_echo.in_region(addr) {
+            let tru_addr = addr - self.region_ram.start;
+            self.storage_ram.storage[tru_addr as usize] = val;
+        } else {
+            panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
+        }
     }
 
     pub fn read_word(&self, addr: u16) -> u16 {
-        if self.region_rom.in_region(addr) {
-            return self.cartridge.read_word(addr)
-        }
-        panic!("Trying to read word from unrecognized address: 0x{:X}", addr);
+        let lo = self.read_byte(addr) as u16;
+        let hi = self.read_byte(addr + 1) as u16;
+        hi << 8 | lo
     }
 
-    pub fn write_word(&self, addr: u16, val: u16) {
-        panic!("Trying to write word 0x{:X} to unrecognized address: 0x{:X}", val, addr);
+    pub fn write_word(&mut self, addr: u16, val: u16) {
+        let first = ((val & 0xFF00) >> 8) as u8;
+        let second = (val & 0x00FF) as u8;
+        self.write_byte(addr, first);
+        self.write_byte(addr + 1, second);
     }
 }
