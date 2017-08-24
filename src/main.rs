@@ -3,6 +3,8 @@ use std::io::Read;
 use std::path::Path;
 mod hardware;
 
+#[macro_use] extern crate text_io;
+
 fn main() {
     let path = Path::new("assets/Tetris (World).gb");
     let rom_buf = read_bin(path);

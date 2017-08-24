@@ -1,7 +1,7 @@
 use std::fmt;
-use std::num;
 use hardware::instructions;
 use hardware::bus;
+use hardware::debugger;
 
 #[derive(Default)]
 pub struct Register<T: Copy> {
@@ -78,6 +78,26 @@ impl RegBank {
     pub fn hl(&self) -> u16 {
         (self.h.r() as u16) << 8 | (self.l.r() as u16)
     }
+
+    pub fn af_w(&mut self, word: u16) {
+        self.a.w(((word & 0xFF00) >> 8) as u8);
+        self.f.w((word & 0x00FF) as u8);
+    }
+
+    pub fn bc_w(&mut self, word: u16) {
+        self.b.w(((word & 0xFF00) >> 8) as u8);
+        self.c.w((word & 0x00FF) as u8);
+    }
+
+    pub fn de_w(&mut self, word: u16) {
+        self.d.w(((word & 0xFF00) >> 8) as u8);
+        self.e.w((word & 0x00FF) as u8);
+    }
+
+    pub fn hl_w(&mut self, word: u16) {
+        self.h.w(((word & 0xFF00) >> 8) as u8);
+        self.l.w((word & 0x00FF) as u8);
+    }
 }
 
 pub struct CPU {
@@ -103,6 +123,7 @@ pub enum CPUFlags {
     C = 0b00010000
 }
 
+
 impl CPU {
     pub fn new(bus: bus::BUS) -> Self {
         CPU {
@@ -115,7 +136,9 @@ impl CPU {
 
     pub fn run(&mut self) {
         let mut instr_set = instructions::InstructionSet::new();
-        loop {            
+        let mut debugger = debugger::Debugger::new();
+        loop {
+            debugger.stop_if_needed(self);
             let opcode = self.fetch_byte_immediate();
             println!("PC: {:<4X}, Opcode {:<2X}",
                     self.pc.r() - 1,
@@ -124,7 +147,7 @@ impl CPU {
                 println!("Unimplemented instruction 0x{:X}", opcode);
                 println!("Processor state:\n{}", self);
                 break;
-            } else {
+            } else {                
                 let cycles = instr_set.exec(self, opcode); 
             }
         }

@@ -1,4 +1,14 @@
 [root]
 name = "RustikGB"
 version = "0.1.0"
+dependencies = [
+ "text_io 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
+[[package]]
+name = "text_io"
+version = "0.1.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[metadata]
+"checksum text_io 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "090d2ee73ae8f01646d500fbb72f99f0b2aea174b7b15d58359bbdf083f73e6d"
