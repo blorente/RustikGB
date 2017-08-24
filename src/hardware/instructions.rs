@@ -63,7 +63,6 @@ macro_rules! pushall {
 macro_rules! jp_imm_cond {
      ($cond:expr, $cpu:expr) => {{
         if $cond {
-            let addr = $cpu.pc.r();
             let imm = $cpu.fetch_word_immediate();
             $cpu.pc.w(imm);
         }
@@ -73,7 +72,7 @@ macro_rules! jp_imm_cond {
 fn add_carry(other : u8, cpu : &mut CPU) {
     let carry = if cpu.is_flag_set(CPUFlags::C) {1} else {0};
     let a : u8 = cpu.regs.a.r();
-    let res : u16 = a as u16 + other as u16 + carry as u16;
+    let res : u16 = (a as u16).wrapping_add(other as u16).wrapping_add(carry as u16);
     let res_trunc : u8 = (res & 0xF) as u8;
     cpu.set_flag(CPUFlags::Z, res_trunc == 0);
     cpu.set_flag(CPUFlags::N, false);
@@ -118,27 +117,53 @@ fn store_and_decrement(cpu: &mut CPU) {
     let hl = cpu.regs.hl();
     let a = cpu.regs.a.r();
     cpu.write_byte(hl, a);
-    cpu.regs.hl_w(hl - 1);    
+    cpu.regs.hl_w(hl.wrapping_sub(1));    
+}
+
+macro_rules! dec {
+    ($target_reg: expr, $cpu: expr, $indirect: expr) => {
+        let val;
+        let addr = $cpu.regs.hl();
+        match $indirect {
+            true => {val = $cpu.read_byte(addr);}
+            false => {val = $target_reg.r()}
+        }
+        let res = val.wrapping_sub(1);
+        match $indirect {
+            true => {$cpu.write_byte(addr, res)}
+            false => {$target_reg.w(res);}
+        }       
+        $cpu.set_flag(CPUFlags::Z, res == 0);
+        $cpu.set_flag(CPUFlags::N, true);
+        $cpu.set_flag(CPUFlags::H, (val & 0x0F) == 0);
+    };
 }
 
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
         [0x00, inst!( "NOP", |cpu, op|{1})],
-        [0x01, inst!("LD BC,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.b, cpu.regs.c, cpu); 3})],        
-        [0x06, inst!("LD B,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.b, cpu); 2})],
+        [0x01, inst!("LD BC,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.b, cpu.regs.c, cpu); 3})],  
+        [0x05, inst!("DEC B", |cpu, op|{dec!(cpu.regs.b, cpu, false); 1})],      
+        [0x06, inst!("LD B,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.b, cpu); 2})],  
+        [0x0D, inst!("DEC C", |cpu, op|{dec!(cpu.regs.c, cpu, false); 1})],      
         [0x0E, inst!("LD C,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.c, cpu); 2})],
 
-        [0x11, inst!("LD DE,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.d, cpu.regs.e, cpu); 3})],
-        [0x16, inst!("LD D,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.d, cpu); 2})],
+        [0x11, inst!("LD DE,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.d, cpu.regs.e, cpu); 3})],          
+        [0x15, inst!("DEC D", |cpu, op|{dec!(cpu.regs.d, cpu, false); 1})],      
+        [0x16, inst!("LD D,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.d, cpu); 2})],          
+        [0x1D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.e, cpu, false); 1})],      
         [0x1E, inst!("LD E,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],
 
-        [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.h, cpu.regs.l, cpu); 3})],
-        [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],
+        [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.h, cpu.regs.l, cpu); 3})],      
+        [0x25, inst!("DEC H", |cpu, op|{dec!(cpu.regs.h, cpu, false); 1})],
+        [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],              
+        [0x2D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.l, cpu, false); 1})],
         [0x2E, inst!("LD L,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.l, cpu); 2})],
 
         [0x31, inst!("LD SP,nn", |cpu, op|{load_word_imm_u16!(cpu.sp, cpu); 3})],
-        [0x32, inst!("LDD (HL-),A", |cpu, op|{store_and_decrement(cpu); 3})],
+        [0x32, inst!("LDD (HL-),A", |cpu, op|{store_and_decrement(cpu); 3})],            
+        [0x35, inst!("DEC (HL)", |cpu, op|{dec!(cpu.regs.l, cpu, true); 3})],
 
         [0x88, inst!("ADC A,B", |cpu, op|{add_carry(cpu.regs.b.r(), cpu); 1})],
         [0x89, inst!("ADC A,C", |cpu, op|{add_carry(cpu.regs.c.r(), cpu); 1})],
