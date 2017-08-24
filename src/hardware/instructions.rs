@@ -133,7 +133,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x16, inst!("LD D,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.d, cpu); 2})],
         [0x1E, inst!("LD E,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],
 
-        [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.b, cpu.regs.c, cpu); 3})],
+        [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.h, cpu.regs.l, cpu); 3})],
         [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],
         [0x2E, inst!("LD L,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.l, cpu); 2})],
 
