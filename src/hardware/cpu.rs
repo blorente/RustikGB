@@ -43,10 +43,10 @@ impl Register {
 
 
 pub struct RegBank {
-    af : Register,
-    bc : Register,
-    de : Register,
-    hl : Register,
+    pub af : Register,
+    pub bc : Register,
+    pub de : Register,
+    pub hl : Register,
 }
 
 impl fmt::Display for RegBank {
@@ -72,7 +72,7 @@ impl Default for RegBank {
 
 pub struct CPU {
     bus: bus::BUS,
-    registers : RegBank,
+    pub regs : RegBank,
     pub sp : Register,
     pub pc : Register,
 }
@@ -80,17 +80,24 @@ pub struct CPU {
 impl fmt::Display for CPU {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         writeln!(fmt, "{}sp: 0x{:<4X}\npc: 0x{:<4X}", 
-                self.registers,
+                self.regs,
                 self.sp.value(),
                 self.pc.value())
     }
+}
+
+pub enum CPUFlags {
+    Z = 0b10000000,
+    N = 0b01000000,
+    H = 0b00100000,
+    C = 0b00010000
 }
 
 impl CPU {
     pub fn new(bus: bus::BUS) -> Self {
         CPU {
             bus: bus,
-            registers : Default::default(),
+            regs : Default::default(),
             sp : Register::new(0xFFFE),            
             pc : Register::new(0x0100),
         }
@@ -128,6 +135,19 @@ impl CPU {
 
     pub fn write_word(&self, addr: u16, val: u16) {
         self.bus.write_word(addr, val)
+    }
+
+    pub fn is_flag_set(&self, flag: CPUFlags) -> bool {
+        self.regs.af.r_lo() & (flag as u8) > 0
+    }
+
+    pub fn set_flag(&mut self, flag: CPUFlags, val: bool) {
+        if (val) {
+            self.regs.af.val = self.regs.af.val | (flag as u16)
+        } else {
+            self.regs.af.val = self.regs.af.val & !(flag as u16)
+        }
+        self.regs.af.val &= 0xFFF0;
     }
 }
 
