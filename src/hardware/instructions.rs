@@ -221,6 +221,8 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
 
         [0xC3, inst!( "JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
         
+        [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_a(cpu.read_byte(addr), cpu); 4})]
+
     )
 }

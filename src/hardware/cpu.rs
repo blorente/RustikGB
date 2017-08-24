@@ -197,5 +197,9 @@ impl CPU {
         }
         self.regs.f.val &= 0xF0;
     }
+
+    pub fn disable_interrupts(&mut self) {
+        // TODO: Implement
+    }
 }
 
