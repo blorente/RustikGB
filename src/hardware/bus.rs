@@ -77,20 +77,21 @@ impl BUS {
         if self.region_rom.in_region(addr) {
             return self.cartridge.read_byte(addr)
         }
-        0xFFFF
+        panic!("Trying to read byte from unrecognized address: 0x{:X}", addr);
     }
 
     pub fn write_byte(&self, addr: u16, val: u8) {
+        panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
     }
 
     pub fn read_word(&self, addr: u16) -> u16 {
         if self.region_rom.in_region(addr) {
             return self.cartridge.read_word(addr)
         }
-        0xFFFF
+        panic!("Trying to read word from unrecognized address: 0x{:X}", addr);
     }
 
     pub fn write_word(&self, addr: u16, val: u16) {
-
+        panic!("Trying to write word 0x{:X} to unrecognized address: 0x{:X}", val, addr);
     }
 }
