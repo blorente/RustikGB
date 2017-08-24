@@ -1,4 +1,5 @@
 use hardware::cartridge::Cartridge;
+use std::fmt;
 
 const ROM_START                 : u16 = 0x0000;
 const ROM_END                   : u16 = 0x7FFF;
@@ -42,6 +43,13 @@ impl MemoryRegion {
     }
 }
 
+impl fmt::Display for MemoryRegion {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        writeln!(fmt, "(0x{:4X}, {:4X})", 
+                self.start, self.end)
+    }
+}
+
 struct RAM {
     pub storage: Vec<u8>
 }
@@ -58,7 +66,7 @@ impl RAM {
 pub struct BUS {
     cartridge : Cartridge,
     storage_ram: RAM,
-    
+    storage_zero_ram: RAM, 
 
     // Memory regions
     region_rom: MemoryRegion,
@@ -76,6 +84,7 @@ impl BUS {
         BUS {
             cartridge: cartridge,
             storage_ram: RAM::new((INTERNAL_RAM_END - INTERNAL_RAM_START + 1) as usize),
+            storage_zero_ram: RAM::new((ZERO_PAGE_RAM_END - ZERO_PAGE_RAM_START + 1) as usize),
 
             region_rom: MemoryRegion::new(ROM_START, ROM_END),
             region_graphics: MemoryRegion::new(GRAPHICS_RAM_START, GRAPHICS_RAM_END),
@@ -94,14 +103,20 @@ impl BUS {
         } else if self.region_ram.in_region(addr) | self.region_ram_echo.in_region(addr) {
             let tru_addr = addr - self.region_ram.start;
             return self.storage_ram.storage[tru_addr as usize];
+        } else if self.region_zero_ram.in_region(addr) {
+            let tru_addr = addr - self.region_zero_ram.start;
+            return self.storage_zero_ram.storage[tru_addr as usize];
         }
         panic!("Trying to read byte from unrecognized address: 0x{:X}", addr);
     }
 
-    pub fn write_byte(&mut self, addr: u16, val: u8) {
+    pub fn write_byte(&mut self, addr: u16, val: u8) {        
         if self.region_ram.in_region(addr) | self.region_ram_echo.in_region(addr) {
             let tru_addr = addr - self.region_ram.start;
             self.storage_ram.storage[tru_addr as usize] = val;
+        } else if self.region_zero_ram.in_region(addr) {
+            let tru_addr = addr - self.region_zero_ram.start;
+            self.storage_zero_ram.storage[tru_addr as usize] = val;
         } else {
             panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
         }
