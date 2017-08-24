@@ -116,9 +116,9 @@ impl CPU {
     pub fn run(&mut self) {
         let mut instr_set = instructions::InstructionSet::new();
         loop {            
-            let opcode = self.read_byte(self.pc.r());
+            let opcode = self.fetch_byte_immediate();
             println!("PC: {:<4X}, Opcode {:<2X}",
-                    self.pc.r(),
+                    self.pc.r() - 1,
                     opcode);      
             if !instr_set.is_implemented(opcode) {
                 println!("Unimplemented instruction 0x{:X}", opcode);
@@ -126,10 +126,22 @@ impl CPU {
                 break;
             } else {
                 let cycles = instr_set.exec(self, opcode); 
-                let pcval = self.pc.r() + 1;
-                self.pc.w(pcval); 
             }
         }
+    }
+
+    pub fn fetch_byte_immediate(&mut self) -> u8 {
+        let res = self.bus.read_byte(self.pc.r());
+        let oldpc = self.pc.r();
+        self.pc.w(oldpc + 1);
+        res
+    }
+
+    pub fn fetch_word_immediate(&mut self) -> u16 {
+        let res = self.bus.read_word(self.pc.r());
+        let oldpc = self.pc.r();
+        self.pc.w(oldpc + 2);
+        res
     }
 
     pub fn read_byte(&self, addr: u16) -> u8 {

@@ -64,8 +64,8 @@ macro_rules! jp_imm_cond {
      ($cond:expr, $cpu:expr) => {{
         if $cond {
             let addr = $cpu.pc.r();
-            let imm = $cpu.read_word(addr + 1);
-            $cpu.pc.w(imm); 
+            let imm = $cpu.fetch_word_immediate();
+            $cpu.pc.w(imm);
         }
     }}    
 }
