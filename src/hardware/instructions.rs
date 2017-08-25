@@ -297,15 +297,20 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xAF, inst!("XOR A,A", |cpu, op|{xor(cpu.regs.a.r(), cpu); 1})],
 
         [0xC3, inst!("JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
+        [0xC5, inst!("PUSH AF", |cpu, op|{let val = cpu.regs.af();cpu.push_word(val); 4})],
         [0xCD, inst!("CALL nn", |cpu, op|{let next_inst = cpu.pc.r().wrapping_add(3); cpu.push_word(next_inst); jp_imm_cond!(true, cpu); 3})],
+        
+        [0xD5, inst!("PUSH BC", |cpu, op|{let val = cpu.regs.bc();cpu.push_word(val); 4})],
 
         [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{let off = cpu.fetch_byte_immediate();ldh(cpu, off, false);3})],
         [0xE2, inst!("LD (0xFF00+C),A", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, false);3})],
+        [0xE5, inst!("PUSH DE", |cpu, op|{let val = cpu.regs.de();cpu.push_word(val); 4})],
         [0xEA, inst!("LD (nn),A", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_from_a_ind(addr, cpu); 4})],
         
         [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{let off = cpu.fetch_byte_immediate(); ldh(cpu, off, true); 3})],
         [0xF2, inst!("LD A,(0xFF00+C)", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, true); 3})],
         [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
+        [0xF5, inst!("PUSH HL", |cpu, op|{let val = cpu.regs.hl();cpu.push_word(val); 4})],
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_into_a(cpu.read_byte(addr), cpu); 4})]
 
     )
