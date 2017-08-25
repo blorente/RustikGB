@@ -21,24 +21,36 @@ impl<'i> Instruction<'i> {
 }
 
 pub struct InstructionSet<'i> {
-    instruction_set: Vec<Instruction<'i>>
+    normal_instructions: Vec<Instruction<'i>>,
+    bitwise_instructions: Vec<Instruction<'i>>
 }
 
 impl<'i> InstructionSet<'i> {
     pub fn new() -> Self {
         InstructionSet {
-            instruction_set: create_isa()
+            normal_instructions: create_isa(),
+            bitwise_instructions: create_bitwise_isa()
         }
     }
 
-    pub fn is_implemented(&self, opcode: u8) -> bool {
-        self.instruction_set[opcode as usize].dissassembly != "Unimp"
+    pub fn is_implemented(&self, opcode: u8, bitwise: bool) -> bool {
+        match bitwise {
+            false => {self.normal_instructions[opcode as usize].dissassembly != "Unimp"}
+            true => {self.bitwise_instructions[opcode as usize].dissassembly != "Unimp"}
+        }
+        
     }
 
     pub fn exec(&mut self, cpu: &mut CPU, opcode: u8) -> u32 {
-        self.instruction_set[opcode as usize].execute(cpu, opcode)
+        self.normal_instructions[opcode as usize].execute(cpu, opcode)
+    }
+
+    pub fn exec_bit(&mut self, cpu: &mut CPU, opcode: u8) -> u32 {
+        self.bitwise_instructions[opcode as usize].execute(cpu, opcode)
     }
 }
+
+
 
 macro_rules! inst {
     ($x:expr, $f:expr) => {{
@@ -168,6 +180,7 @@ fn ldh(cpu: &mut CPU, store_into_a: bool) {
     }
 }
 
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -237,4 +250,9 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_a(cpu.read_byte(addr), cpu); 4})]
 
     )
+}
+
+#[allow(dead_code)]
+fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
+    pushall!()
 }

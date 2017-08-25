@@ -137,18 +137,31 @@ impl CPU {
     pub fn run(&mut self) {
         let mut instr_set = instructions::InstructionSet::new();
         let mut debugger = debugger::Debugger::new();
+        let mut cycles : u32 = 0;
         loop {
             debugger.stop_if_needed(self);
-            let opcode = self.fetch_byte_immediate();
+
+            let mut bitwise = false;
+            let mut opcode = self.fetch_byte_immediate();
+            if opcode == 0xCB {bitwise = true; opcode = self.fetch_byte_immediate();}
+
+            if self.pc.r() >= 0x0100 {self.bus.in_bios = false;}
+
             println!("PC: {:<4X}, Opcode {:<2X}",
                     self.pc.r() - 1,
                     opcode);      
-            if !instr_set.is_implemented(opcode) {
-                println!("Unimplemented instruction 0x{:X}", opcode);
+            if !instr_set.is_implemented(opcode, bitwise) {
+                println!("Unimplemented instruction {}0x{:X}", 
+                        if bitwise {"(CB)"} else {""},
+                        opcode);
                 println!("Processor state:\n{}", self);
                 break;
-            } else {                
-                let cycles = instr_set.exec(self, opcode); 
+            } else {
+                if !bitwise {
+                    cycles += instr_set.exec(self, opcode); 
+                } else {
+                    cycles += instr_set.exec_bit(self, opcode);
+                }
             }
         }
     }
