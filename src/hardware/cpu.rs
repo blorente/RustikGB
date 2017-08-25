@@ -202,5 +202,12 @@ impl CPU {
         self.sp.w(new_sp);
         self.bus.write_byte(new_sp, val);
     }
+
+    pub fn pop(&mut self) -> u8 {
+        let sp = self.sp.r();
+        let res = self.bus.read_byte(sp);
+        self.sp.w(sp.wrapping_add(1));
+        res
+    }
 }
 
