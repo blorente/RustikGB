@@ -1,43 +1,8 @@
 use std::fmt;
 use hardware::instructions;
-use hardware::bus;
+use hardware::memory::bus;
 use hardware::debugger;
-
-#[derive(Default)]
-pub struct Register<T: Copy> {
-    val: T,
-}
-
-impl<T: Copy> Register<T> {
-    pub fn new(value: T) -> Self {
-        Register {
-            val: value
-        }
-    }
-
-    pub fn r(&self) -> T {
-        let ret = self.val;
-        ret
-    }
-
-    pub fn w(& mut self, data: T) {
-        self.val = data;
-    }
-}
-
-impl Register<u8> {
-    pub fn is_bit_set(&self, bit: u8) -> bool {
-        return (self.val & ((1 as u8) << bit)) > 0;
-    }
- }
-
- 
-impl Register<u16> {
-    pub fn is_bit_set(&self, bit: u8) -> bool {
-        return (self.val & ((1 as u16) << bit)) > 0;
-    }
-}
-
+use hardware::registers::Register;
 
 pub struct RegBank {
     pub a : Register<u8>,
@@ -63,14 +28,14 @@ impl fmt::Display for RegBank {
 impl Default for RegBank {
     fn default() -> Self {
         RegBank {
-            a: Register {val: 0x00},
-            f: Register {val: 0x00},
-            b: Register {val: 0x00},
-            c: Register {val: 0x00},
-            d: Register {val: 0x00},
-            e: Register {val: 0x00},
-            h: Register {val: 0x00},
-            l: Register {val: 0x00}
+            a: Register::new(0x00),
+            f: Register::new(0x00),
+            b: Register::new(0x00),
+            c: Register::new(0x00),
+            d: Register::new(0x00),
+            e: Register::new(0x00),
+            h: Register::new(0x00),
+            l: Register::new(0x00),   
         }
     }
 }
@@ -216,12 +181,11 @@ impl CPU {
     pub fn set_flag(&mut self, flag: CPUFlags, val: bool) {
         if val {
             let new_f = self.regs.f.r() | flag as u8;
-            self.regs.f.w(new_f);
+            self.regs.f.w(new_f & 0xF0);
         } else {
             let new_f = self.regs.f.r() & !(flag as u8);
-            self.regs.f.w(new_f); 
+            self.regs.f.w(new_f & 0xF0); 
         }
-        self.regs.f.val &= 0xF0;
     }
 
     pub fn disable_interrupts(&mut self) {

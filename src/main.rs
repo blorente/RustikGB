@@ -11,7 +11,7 @@ fn main() {
     let rom_buf = read_bin("assets/Tetris (World).gb");
     let cartridge = hardware::cartridge::Cartridge::new(&rom_buf);
     println!("Game data\n==========\n{}", &cartridge);
-    let bus = hardware::bus::BUS::new(boot_buf, cartridge);
+    let bus = hardware::memory::bus::BUS::new(boot_buf, cartridge);
     let mut processor : hardware::cpu::CPU = hardware::cpu::CPU::new(bus);
     processor.run();
 }
