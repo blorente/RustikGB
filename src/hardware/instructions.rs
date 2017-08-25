@@ -336,12 +336,12 @@ fn test_bit(opcode: u8, cpu: &mut CPU) {
 }
 
 fn rotate_left_carry(original: u8, cpu: &mut CPU) -> u8 {
-    let rotated = (original << 1) | if cpu.is_flag_set(CPUFlags::C) {1} else {0};
+    let rotated = ((original as u16) << 1) | if cpu.is_flag_set(CPUFlags::C) {1} else {0};
     cpu.set_flag(CPUFlags::Z, rotated == 0);
     cpu.set_flag(CPUFlags::N, false);
     cpu.set_flag(CPUFlags::H, false);
     cpu.set_flag(CPUFlags::C, (original & 0b1000000) > 0);
-    rotated
+    (rotated & 0xFF) as u8
 }
 
 macro_rules! rotate_left {
