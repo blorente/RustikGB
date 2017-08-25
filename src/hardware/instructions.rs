@@ -212,7 +212,7 @@ macro_rules! inc_16 {
 }
 
 
-enum JumpImmCond {NZ, Z, NC, C}
+enum JumpImmCond {NZ, Z, NC, C, None}
 fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond) -> bool {
     let old_pc = cpu.pc.r().wrapping_add(1);
     let offset = cpu.fetch_byte_immediate() as i8;
@@ -222,6 +222,7 @@ fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond) -> bool {
         JumpImmCond::Z => {if cpu.is_flag_set(CPUFlags::Z) {target_addr} else {old_pc} }
         JumpImmCond::NC => {if !cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc} }
         JumpImmCond::C => {if cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc} }
+        _ => {target_addr}
     };
     cpu.pc.w(new_pc);
     new_pc != old_pc
@@ -341,6 +342,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x16, inst!("LD D,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.d, cpu); 2})], 
         [0x17, inst!("RLA", |cpu, op|{rotate_left!(cpu.regs.a, cpu); 1})],  
         
+        [0x18, inst!("JR n", |cpu, op|{jump_cond_imm(cpu, JumpImmCond::None); 2})],
         [0x1A, inst!("LD A,(DE)", |cpu, op|{let addr = cpu.regs.de(); ld_into_a(cpu.read_byte(addr), cpu); 2})],       
         [0x1B, inst!("DEC DE", |cpu, op|{dec_16!("DE", cpu); 2})], 
         [0x1C, inst!("INC E", |cpu, op| {inc!(cpu.regs.e, cpu, false); 1})], 
@@ -435,6 +437,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xE1, inst!("POP HL", |cpu, op|{pop_into!(cpu.regs.h, cpu.regs.l, cpu);3})],
         [0xE2, inst!("LD (0xFF00+C),A", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, false);3})],
         [0xE5, inst!("PUSH HL", |cpu, op|{let val = cpu.regs.hl();cpu.push_word(val); 4})],
+        [0xE9, inst!("JP (HL)", |cpu, op|{jump(cpu.regs.hl(), cpu); 1})],
         [0xEA, inst!("LD (nn),A", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_from_a_ind(addr, cpu); 4})],
         
         [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{let off = cpu.fetch_byte_immediate(); ldh(cpu, off, true); 3})],
