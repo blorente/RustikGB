@@ -17,7 +17,7 @@ pub struct RegBank {
 
 impl fmt::Display for RegBank {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(fmt, "a: 0x{:<2X} | f: 0x{:<2X}\nb: 0x{:<2X} | c: 0x{:<2X}\nd: 0x{:<2X} | e: 0x{:<2X}\nh: 0x{:<2X} | l: 0x{:<2X}",
+        writeln!(fmt, "a: 0x{:02X} | f: 0x{:02X}\nb: 0x{:02X} | c: 0x{:02X}\nd: 0x{:02X} | e: 0x{:02X}\nh: 0x{:02X} | l: 0x{:02X}",
         self.a.r(), self.f.r(),
         self.b.r(), self.c.r(),
         self.d.r(), self.e.r(),
@@ -87,9 +87,13 @@ pub struct CPU {
 
 impl fmt::Display for CPU {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(fmt, "{}sp: 0x{:<4X}\npc: 0x{:<4X}", 
+        let sp = self.sp.r();
+        writeln!(fmt, "{}sp: 0x{:<4X} ({:2X}, {:2X}, {:2X})\npc: 0x{:<4X}", 
                 self.regs,
-                self.sp.r(),
+                self.sp.r(), 
+                    self.read_byte(sp),
+                    self.read_byte(sp + 1),
+                    self.read_byte(sp + 2),
                 self.pc.r())
     }
 }
@@ -117,19 +121,20 @@ impl CPU {
         let mut debugger = debugger::Debugger::new();
         let mut cycles : u32 = 0;
         loop {
-            debugger.stop_if_needed(self);
-
             let mut bitwise = false;
             let mut opcode = self.fetch_byte_immediate();
             if opcode == 0xCB {bitwise = true; opcode = self.fetch_byte_immediate();}
 
+            debugger.stop_if_needed(self);
+
             if self.pc.r() >= 0x0100 {self.bus.in_bios = false;}
 
-            println!("PC: {:<4X}, Opcode {:<2X}",
+            println!("PC: {:04X}, Opcode {:02X}: {}",
                     self.pc.r() - 1,
-                    opcode);      
+                    opcode,
+                    instr_set.print_instr(opcode, bitwise));      
             if !instr_set.is_implemented(opcode, bitwise) {
-                println!("Unimplemented instruction {}0x{:X}", 
+                println!("Unimplemented instruction {}0x{:0X}", 
                         if bitwise {"(CB)"} else {""},
                         opcode);
                 println!("Processor state:\n{}", self);
