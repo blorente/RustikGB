@@ -180,37 +180,69 @@ fn ldh(cpu: &mut CPU, offset: u8, store_into_a: bool) {
 }
 
 
+macro_rules! inc {
+    ($target_reg: expr, $cpu: expr, $indirect: expr) => {
+        let val;
+        let addr = $cpu.regs.hl();
+        match $indirect {
+            true => {val = $cpu.read_byte(addr);}
+            false => {val = $target_reg.r()}
+        }
+        let res = val.wrapping_add(1);
+        match $indirect {
+            true => {$cpu.write_byte(addr, res)}
+            false => {$target_reg.w(res);}
+        }       
+        $cpu.set_flag(CPUFlags::Z, res == 0);
+        $cpu.set_flag(CPUFlags::N, false);
+        $cpu.set_flag(CPUFlags::H, (val & 0x0F) + 1 > 0x0F);
+    };
+}
+
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
         [0x00, inst!( "NOP", |cpu, op|{1})],
-        [0x01, inst!("LD BC,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.b, cpu.regs.c, cpu); 3})],  
+        [0x01, inst!("LD BC,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.b, cpu.regs.c, cpu); 3})],
+        [0x04, inst!("INC B", |cpu, op| {inc!(cpu.regs.b, cpu, false); 1})], 
         [0x05, inst!("DEC B", |cpu, op|{dec!(cpu.regs.b, cpu, false); 1})],      
         [0x06, inst!("LD B,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.b, cpu); 2})],  
+        
         [0x0A, inst!("LD A,(BC)", |cpu, op|{let addr = cpu.regs.bc(); ld_a(cpu.read_byte(addr), cpu); 2})],
+        [0x0C, inst!("INC C", |cpu, op| {inc!(cpu.regs.c, cpu, false); 1})], 
         [0x0D, inst!("DEC C", |cpu, op|{dec!(cpu.regs.c, cpu, false); 1})],      
         [0x0E, inst!("LD C,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.c, cpu); 2})],
 
-        [0x11, inst!("LD DE,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.d, cpu.regs.e, cpu); 3})],          
+        [0x11, inst!("LD DE,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.d, cpu.regs.e, cpu); 3})],  
+        [0x14, inst!("INC D", |cpu, op| {inc!(cpu.regs.d, cpu, false); 1})],         
         [0x15, inst!("DEC D", |cpu, op|{dec!(cpu.regs.d, cpu, false); 1})],      
         [0x16, inst!("LD D,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.d, cpu); 2})],   
+        
         [0x1A, inst!("LD A,(DE)", |cpu, op|{let addr = cpu.regs.de(); ld_a(cpu.read_byte(addr), cpu); 2})],       
+        [0x1C, inst!("INC E", |cpu, op| {inc!(cpu.regs.e, cpu, false); 1})], 
         [0x1D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.e, cpu, false); 1})],      
         [0x1E, inst!("LD E,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],
 
         [0x20, inst!("JR NZ,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NZ){3} else {2}})],
         [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.h, cpu.regs.l, cpu); 3})],      
+        [0x24, inst!("INC H", |cpu, op| {inc!(cpu.regs.h, cpu, false); 1})], 
         [0x25, inst!("DEC H", |cpu, op|{dec!(cpu.regs.h, cpu, false); 1})],
         [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],  
+        
         [0x28, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::Z){3} else {2}})],            
+        [0x2C, inst!("INC L", |cpu, op| {inc!(cpu.regs.l, cpu, false); 1})], 
         [0x2D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.l, cpu, false); 1})],
         [0x2E, inst!("LD L,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.l, cpu); 2})],
 
         [0x30, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NC){3} else {2}})],  
         [0x31, inst!("LD SP,nn", |cpu, op|{load_word_imm_u16!(cpu.sp, cpu); 3})],
         [0x32, inst!("LDD (HL-),A", |cpu, op|{store_and_decrement(cpu); 3})],            
+        [0x34, inst!("INC (HL)", |cpu, op| {inc!(cpu.regs.l, cpu, true); 1})], 
         [0x35, inst!("DEC (HL)", |cpu, op|{dec!(cpu.regs.l, cpu, true); 3})],
+
         [0x38, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::C){3} else {2}})],         
+        [0x3C, inst!("INC A", |cpu, op| {inc!(cpu.regs.a, cpu, false); 1})], 
         [0x3E, inst!("LD A,n", |cpu, op|{ld_a(cpu.fetch_byte_immediate(), cpu); 2})],
 
         [0x78, inst!("LD A,B", |cpu, op|{ld_a(cpu.regs.b.r(), cpu); 1})],
