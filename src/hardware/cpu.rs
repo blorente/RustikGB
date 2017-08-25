@@ -191,5 +191,16 @@ impl CPU {
     pub fn disable_interrupts(&mut self) {
         // TODO: Implement
     }
+
+    pub fn push_word(&mut self, val: u16) {
+        self.push(((val & 0xFF00) >> 8) as u8);
+        self.push((val & 0xFF) as u8)
+    }
+
+    pub fn push(&mut self, val: u8) {
+        let new_sp = self.sp.r().wrapping_sub(1);
+        self.sp.w(new_sp);
+        self.bus.write_byte(new_sp, val);
+    }
 }
 

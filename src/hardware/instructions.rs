@@ -296,7 +296,8 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xAE, inst!("XOR A,(HL)", |cpu, op|{let hl = cpu.regs.hl(); xor(cpu.read_byte(hl), cpu); 2})],
         [0xAF, inst!("XOR A,A", |cpu, op|{xor(cpu.regs.a.r(), cpu); 1})],
 
-        [0xC3, inst!( "JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
+        [0xC3, inst!("JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
+        [0xCD, inst!("CALL nn", |cpu, op|{let next_inst = cpu.pc.r().wrapping_add(3); cpu.push_word(next_inst); jp_imm_cond!(true, cpu); 3})],
 
         [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{let off = cpu.fetch_byte_immediate();ldh(cpu, off, false);3})],
         [0xE2, inst!("LD (0xFF00+C),A", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, false);3})],
