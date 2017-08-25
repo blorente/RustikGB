@@ -304,6 +304,18 @@ macro_rules! pop_into {
     };
 }
 
+fn jump(addr: u16, cpu: &mut CPU) {
+    cpu.pc.w(addr);
+}
+
+fn compare_with_a(val: u8, cpu: &mut CPU) {
+    let a = cpu.regs.a.r();
+    cpu.set_flag(CPUFlags::Z, val == a);
+    cpu.set_flag(CPUFlags::N, true);
+    cpu.set_flag(CPUFlags::H, (a & 0x0F) < (val & 0x0F));
+    cpu.set_flag(CPUFlags::C, a < val);
+}
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -347,7 +359,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x2A, inst!("LDI A,(HL+)", |cpu, op|{store_hl_into_a(cpu); inc_16!("HL", cpu); 3})],            
         [0x2B, inst!("DEC HL", |cpu, op|{dec_16!("HL", cpu); 2})], 
         [0x2C, inst!("INC L", |cpu, op| {inc!(cpu.regs.l, cpu, false); 1})], 
-        [0x2D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.l, cpu, false); 1})],
+        [0x2D, inst!("DEC L", |cpu, op|{dec!(cpu.regs.l, cpu, false); 1})],
         [0x2E, inst!("LD L,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.l, cpu); 2})],
 
         [0x30, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NC){3} else {2}})],  
@@ -361,6 +373,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x3A, inst!("LDD A,(HL-)", |cpu, op|{store_hl_into_a(cpu); dec_16!("HL", cpu); 3})],        
         [0x3B, inst!("DEC SP", |cpu, op|{dec_16!("SP", cpu); 2})], 
         [0x3C, inst!("INC A", |cpu, op| {inc!(cpu.regs.a, cpu, false); 1})], 
+        [0x3D, inst!("DEC L", |cpu, op|{dec!(cpu.regs.a, cpu, false); 1})],
         [0x3E, inst!("LD A,n", |cpu, op|{ld_into_a(cpu.fetch_byte_immediate(), cpu); 2})],
 
         [0x47, inst!("LD B,A", |cpu, op|{ld_from_a!(cpu.regs.b, cpu); 1})],
@@ -400,10 +413,20 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xAE, inst!("XOR A,(HL)", |cpu, op|{let hl = cpu.regs.hl(); xor(cpu.read_byte(hl), cpu); 2})],
         [0xAF, inst!("XOR A,A", |cpu, op|{xor(cpu.regs.a.r(), cpu); 1})],
 
+        [0xB8, inst!("CP B", |cpu, op|{compare_with_a(cpu.regs.b.r(), cpu); 1})],
+        [0xB9, inst!("CP C", |cpu, op|{compare_with_a(cpu.regs.c.r(), cpu); 1})],
+        [0xBA, inst!("CP D", |cpu, op|{compare_with_a(cpu.regs.d.r(), cpu); 1})],
+        [0xBB, inst!("CP E", |cpu, op|{compare_with_a(cpu.regs.e.r(), cpu); 1})],
+        [0xBC, inst!("CP H", |cpu, op|{compare_with_a(cpu.regs.h.r(), cpu); 1})],
+        [0xBD, inst!("CP L", |cpu, op|{compare_with_a(cpu.regs.l.r(), cpu); 1})],
+        [0xBE, inst!("CP (HL)", |cpu, op|{let val = cpu.read_byte(cpu.regs.hl()); compare_with_a(val, cpu); 2})],
+        [0xBF, inst!("CP A", |cpu, op|{compare_with_a(cpu.regs.a.r(), cpu); 1})],
+
         [0xC1, inst!("POP BC", |cpu, op|{pop_into!(cpu.regs.b, cpu.regs.c, cpu);3})],
         [0xC3, inst!("JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
         [0xC5, inst!("PUSH BC", |cpu, op|{let val = cpu.regs.bc();cpu.push_word(val); 4})],
-        [0xCD, inst!("CALL nn", |cpu, op|{let next_inst = cpu.pc.r().wrapping_add(3); cpu.push_word(next_inst); jp_imm_cond!(true, cpu); 3})],
+        [0xC9, inst!("RET", |cpu, op|{let target_addr = cpu.pop_word(); jump(target_addr, cpu); 2})],
+        [0xCD, inst!("CALL nn", |cpu, op|{let next_inst = cpu.pc.r().wrapping_add(2); cpu.push_word(next_inst); jp_imm_cond!(true, cpu); 3})],
         
         [0xD1, inst!("POP DE", |cpu, op|{pop_into!(cpu.regs.d, cpu.regs.e, cpu);3})],
         [0xD5, inst!("PUSH DE", |cpu, op|{let val = cpu.regs.de();cpu.push_word(val); 4})],
@@ -419,7 +442,8 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xF2, inst!("LD A,(0xFF00+C)", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, true); 3})],
         [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
         [0xF5, inst!("PUSH AF", |cpu, op|{let val = cpu.regs.af();cpu.push_word(val); 4})],
-        [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_into_a(cpu.read_byte(addr), cpu); 4})]
+        [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_into_a(cpu.read_byte(addr), cpu); 4})],
+        [0xFE, inst!("CP n", |cpu, op|{compare_with_a(cpu.fetch_byte_immediate(), cpu); 2})]     
     )
 }
 

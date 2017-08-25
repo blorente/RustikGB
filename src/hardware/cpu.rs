@@ -92,8 +92,8 @@ impl fmt::Display for CPU {
                 self.regs,
                 self.sp.r(), 
                     self.read_byte(sp),
-                    self.read_byte(sp + 1),
-                    self.read_byte(sp + 2),
+                    if (sp <= 0xFFFE) {self.read_byte(sp + 1)} else {0x00},
+                    if (sp <= 0xFFFD) {self.read_byte(sp + 2)} else {0x00},
                 self.pc.r())
     }
 }
@@ -200,6 +200,12 @@ impl CPU {
     pub fn push_word(&mut self, val: u16) {
         self.push(((val & 0xFF00) >> 8) as u8);
         self.push((val & 0xFF) as u8)
+    }
+
+    pub fn pop_word(&mut self) -> u16 {
+        let lo = self.pop() as u16;
+        let hi = self.pop() as u16;
+        (hi << 8) | lo
     }
 
     pub fn push(&mut self, val: u8) {

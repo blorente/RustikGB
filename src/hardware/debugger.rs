@@ -65,7 +65,7 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     let breakpoints = hash![
-        //0x9C
+        //0xA7
     ];
     breakpoints
 }
