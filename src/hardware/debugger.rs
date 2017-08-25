@@ -20,15 +20,13 @@ impl Debugger {
         }
     }
 
-    pub fn stop_if_needed(&mut self, cpu: &CPU) {
-        let pc = cpu.pc.r();
+    pub fn stop_if_needed(&mut self, pc: u16, cpu: &CPU) {
         if self.breakpoints.contains(&pc) || self.state == DebuggerState::STEP {
-            self.stop_and_ask(cpu);
+            self.stop_and_ask(pc, cpu);
         }
     }
 
-    fn stop_and_ask(&mut self, cpu: &CPU) {  
-        let pc = cpu.pc.r(); 
+    fn stop_and_ask(&mut self, pc: u16, cpu: &CPU) {
         println!("DEBUGGER");
         println!("================");
         println!("Program stopped at address 0x{:0X} with opcode {:0X}", 
@@ -37,15 +35,15 @@ impl Debugger {
         println!("Processor state:\n{}", cpu);
 
         let mut good_command = false;
-        print!("Debug Command: ");
+        println!("Debug Command: ");
+        let mut command: String = read!();
         while !good_command {
-            print!("\nDebug Command: ");
-            let command: String = read!();
+            
         
             match &*command {
                 "n" => {self.state = DebuggerState::STEP; good_command = true}
                 "c" => {self.state = DebuggerState::RUN; good_command = true}                
-                _ => {}
+                _ => {print!("Debug Command: "); command = read!();}
             }
         }
     }
@@ -65,7 +63,7 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     let breakpoints = hash![
-        //0xA7
+        0x68
     ];
     breakpoints
 }

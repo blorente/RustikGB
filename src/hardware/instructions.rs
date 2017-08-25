@@ -214,14 +214,14 @@ macro_rules! inc_16 {
 
 enum JumpImmCond {NZ, Z, NC, C, None}
 fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond) -> bool {
-    let old_pc = cpu.pc.r().wrapping_add(1);
+    let old_pc = cpu.pc.r();
     let offset = cpu.fetch_byte_immediate() as i8;
     let target_addr = (cpu.pc.r() as u32 as i32 + offset as i32) as u16;
     let new_pc: u16 =  match cond {
-        JumpImmCond::NZ => {if !cpu.is_flag_set(CPUFlags::Z) {target_addr} else {old_pc} }
-        JumpImmCond::Z => {if cpu.is_flag_set(CPUFlags::Z) {target_addr} else {old_pc} }
-        JumpImmCond::NC => {if !cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc} }
-        JumpImmCond::C => {if cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc} }
+        JumpImmCond::NZ => {if !cpu.is_flag_set(CPUFlags::Z) {target_addr} else {old_pc.wrapping_add(1)} }
+        JumpImmCond::Z => {if cpu.is_flag_set(CPUFlags::Z) {target_addr} else {old_pc.wrapping_add(1)} }
+        JumpImmCond::NC => {if !cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc.wrapping_add(1)} }
+        JumpImmCond::C => {if cpu.is_flag_set(CPUFlags::C) {target_addr} else {old_pc.wrapping_add(1)} }
         _ => {target_addr}
     };
     cpu.pc.w(new_pc);

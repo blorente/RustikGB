@@ -92,8 +92,8 @@ impl fmt::Display for CPU {
                 self.regs,
                 self.sp.r(), 
                     self.read_byte(sp),
-                    if (sp <= 0xFFFE) {self.read_byte(sp + 1)} else {0x00},
-                    if (sp <= 0xFFFD) {self.read_byte(sp + 2)} else {0x00},
+                    if sp <= 0xFFFE {self.read_byte(sp + 1)} else {0x00},
+                    if sp <= 0xFFFD {self.read_byte(sp + 2)} else {0x00},
                 self.pc.r())
     }
 }
@@ -122,10 +122,11 @@ impl CPU {
         let mut cycles : u32 = 0;
         loop {
             let mut bitwise = false;
+            let old_pc = self.pc.r();
             let mut opcode = self.fetch_byte_immediate();
             if opcode == 0xCB {bitwise = true; opcode = self.fetch_byte_immediate();}
 
-            debugger.stop_if_needed(self);
+            debugger.stop_if_needed(old_pc, self);
 
             if self.pc.r() >= 0x0100 {self.bus.in_bios = false;}
 
