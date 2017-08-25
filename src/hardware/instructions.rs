@@ -335,9 +335,42 @@ fn test_bit(opcode: u8, cpu: &mut CPU) {
     cpu.set_flag(CPUFlags::H, true);    
 }
 
+fn rotate_left_carry(original: u8, cpu: &mut CPU) -> u8 {
+    let rotated = (original << 1) | if cpu.is_flag_set(CPUFlags::C) {1} else {0};
+    cpu.set_flag(CPUFlags::Z, rotated == 0);
+    cpu.set_flag(CPUFlags::N, false);
+    cpu.set_flag(CPUFlags::H, false);
+    cpu.set_flag(CPUFlags::C, (original & 0b1000000) > 0);
+    rotated
+}
+
+macro_rules! rotate_left {
+    ($target_reg: expr, $cpu: expr) => {
+        let original = $target_reg.r();
+        let rotated = rotate_left_carry(original, $cpu);
+        $target_reg.w(rotated);
+    };
+}
+
+fn rotate_left_ind(addr: u16, cpu: &mut CPU) {
+    let original = cpu.read_byte(addr);
+    let rotated = rotate_left_carry(original, cpu);
+    cpu.write_byte(addr, rotated);
+}
+
 #[allow(dead_code)]
 fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
+
+        [0x10, inst!("RL B", |cpu, op|{rotate_left!(cpu.regs.b, cpu); 2})],
+        [0x11, inst!("RL C", |cpu, op|{rotate_left!(cpu.regs.b, cpu); 2})],
+        [0x12, inst!("RL D", |cpu, op|{rotate_left!(cpu.regs.b, cpu); 2})],
+        [0x13, inst!("RL E", |cpu, op|{rotate_left!(cpu.regs.b, cpu); 2})],
+        [0x14, inst!("RL H", |cpu, op|{rotate_left!(cpu.regs.b, cpu); 2})],
+        [0x15, inst!("RL L", |cpu, op|{rotate_left!(cpu.regs.b, cpu); 2})],
+        [0x16, inst!("RL (HL)", |cpu, op|{rotate_left_ind(cpu.regs.hl(), cpu); 4})],
+        [0x17, inst!("RL A", |cpu, op|{rotate_left!(cpu.regs.b, cpu); 2})],
+
         [0x40, inst!("BIT 0,B", |cpu, op|{test_bit(op, cpu); 2})],
         [0x41, inst!("BIT 0,C", |cpu, op|{test_bit(op, cpu); 2})],
         [0x42, inst!("BIT 0,D", |cpu, op|{test_bit(op, cpu); 2})],
