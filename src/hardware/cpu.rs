@@ -88,7 +88,7 @@ pub struct CPU {
 impl fmt::Display for CPU {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         let sp = self.sp.r();
-        writeln!(fmt, "{}sp: 0x{:<4X} ({:2X}, {:2X}, {:2X})\npc: 0x{:<4X}", 
+        writeln!(fmt, "{}sp: 0x{:04X} ({:02X}, {:02X}, {:02X})\npc: 0x{:04X}", 
                 self.regs,
                 self.sp.r(), 
                     self.read_byte(sp),
