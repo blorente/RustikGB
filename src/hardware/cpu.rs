@@ -50,14 +50,14 @@ impl fmt::Display for RegBank {
 impl Default for RegBank {
     fn default() -> Self {
         RegBank {
-            a: Register {val: 0x01},
-            f: Register {val: 0xB0},
+            a: Register {val: 0x00},
+            f: Register {val: 0x00},
             b: Register {val: 0x00},
-            c: Register {val: 0x13},
+            c: Register {val: 0x00},
             d: Register {val: 0x00},
-            e: Register {val: 0xD8},
-            h: Register {val: 0x01},
-            l: Register {val: 0x4D}
+            e: Register {val: 0x00},
+            h: Register {val: 0x00},
+            l: Register {val: 0x00}
         }
     }
 }
@@ -129,8 +129,8 @@ impl CPU {
         CPU {
             bus: bus,
             regs : Default::default(),
-            sp : Register::new(0xFFFE),            
-            pc : Register::new(0x0100),
+            sp : Register::new(0x0000),            
+            pc : Register::new(0x0000),
         }
     }
 

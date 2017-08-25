@@ -1,6 +1,9 @@
 use hardware::cartridge::Cartridge;
 use std::fmt;
 
+const BIOS_START                : u16 = 0x0000;
+const BIOS_END                  : u16 = 0x00FF;
+
 const ROM_START                 : u16 = 0x0000;
 const ROM_END                   : u16 = 0x7FFF;
 
@@ -60,15 +63,26 @@ impl RAM {
             storage: vec![0x0; size]
         }
     }
+
+    pub fn from_data(data: Box<[u8]>) -> Self {
+        RAM {
+            storage: data.to_vec()
+        }
+    }
 }
 
 
 pub struct BUS {
     cartridge : Cartridge,
+    boot_rom: RAM,
+    graphics_ram: RAM,
     storage_ram: RAM,
-    storage_zero_ram: RAM, 
+    storage_zero_ram: RAM,     
+
+    pub in_bios: bool,
 
     // Memory regions
+    region_bios: MemoryRegion,
     region_rom: MemoryRegion,
     region_graphics: MemoryRegion,
     region_cartridge_ram: MemoryRegion,
@@ -80,12 +94,17 @@ pub struct BUS {
 }
 
 impl BUS {
-    pub fn new(cartridge: Cartridge) -> Self {
+    pub fn new(boot_rom: Box<[u8]>, cartridge: Cartridge) -> Self {
         BUS {
             cartridge: cartridge,
+            boot_rom: RAM::from_data(boot_rom),
+            graphics_ram: RAM::new((GRAPHICS_RAM_END - GRAPHICS_RAM_START + 1) as usize),
             storage_ram: RAM::new((INTERNAL_RAM_END - INTERNAL_RAM_START + 1) as usize),
             storage_zero_ram: RAM::new((ZERO_PAGE_RAM_END - ZERO_PAGE_RAM_START + 1) as usize),
 
+            in_bios: true,
+
+            region_bios: MemoryRegion::new(BIOS_START, BIOS_END),
             region_rom: MemoryRegion::new(ROM_START, ROM_END),
             region_graphics: MemoryRegion::new(GRAPHICS_RAM_START, GRAPHICS_RAM_END),
             region_cartridge_ram: MemoryRegion::new(CARTRIDGE_RAM_START, CARTRIDGE_RAM_END),
@@ -98,8 +117,13 @@ impl BUS {
     }
 
     pub fn read_byte(&self, addr: u16) -> u8 {
-        if self.region_rom.in_region(addr) {
+        if self.in_bios && self.region_bios.in_region(addr) {
+            return self.boot_rom.storage[addr as usize];
+        } else if self.region_rom.in_region(addr) {
             return self.cartridge.read_byte(addr)
+        } else if self.region_graphics.in_region(addr) {
+            let tru_addr = addr - self.region_graphics.start;
+            return self.graphics_ram.storage[tru_addr as usize];
         } else if self.region_ram.in_region(addr) | self.region_ram_echo.in_region(addr) {
             let tru_addr = addr - self.region_ram.start;
             return self.storage_ram.storage[tru_addr as usize];
@@ -110,8 +134,11 @@ impl BUS {
         panic!("Trying to read byte from unrecognized address: 0x{:X}", addr);
     }
 
-    pub fn write_byte(&mut self, addr: u16, val: u8) {        
-        if self.region_ram.in_region(addr) | self.region_ram_echo.in_region(addr) {
+    pub fn write_byte(&mut self, addr: u16, val: u8) {   
+        if self.region_graphics.in_region(addr) {
+            let tru_addr = addr - self.region_graphics.start;
+            self.graphics_ram.storage[tru_addr as usize] = val;
+        } else if self.region_ram.in_region(addr) | self.region_ram_echo.in_region(addr) {
             let tru_addr = addr - self.region_ram.start;
             self.storage_ram.storage[tru_addr as usize] = val;
         } else if self.region_zero_ram.in_region(addr) {
