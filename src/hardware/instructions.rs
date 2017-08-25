@@ -171,8 +171,7 @@ fn ld_a(val: u8, cpu: &mut CPU) {
     cpu.regs.a.w(val);
 }
 
-fn ldh(cpu: &mut CPU, store_into_a: bool) {
-    let offset = cpu.fetch_byte_immediate();
+fn ldh(cpu: &mut CPU, offset: u8, store_into_a: bool) {
     let addr : u16 = 0xFF00u16.wrapping_add(offset as u16);
     match store_into_a {
         true => {let val = cpu.read_byte(addr); cpu.regs.a.w(val);}
@@ -243,9 +242,11 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
 
         [0xC3, inst!( "JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
 
-        [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{ldh(cpu, false);3})],
+        [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{let off = cpu.fetch_byte_immediate();ldh(cpu, off, false);3})],
+        [0xE2, inst!("LD (0xFF00+C),A", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, false);3})],
         
-        [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{ldh(cpu, true); 3})],
+        [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{let off = cpu.fetch_byte_immediate(); ldh(cpu, off, true); 3})],
+        [0xF2, inst!("LD A,(0xFF00+C)", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, true); 3})],
         [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_a(cpu.read_byte(addr), cpu); 4})]
 
