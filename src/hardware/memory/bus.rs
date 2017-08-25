@@ -1,4 +1,5 @@
 use hardware::cartridge::Cartridge;
+use hardware::memory::ioregs::IORegs;
 use std::fmt;
 
 const BIOS_START                : u16 = 0x0000;
@@ -77,7 +78,8 @@ pub struct BUS {
     boot_rom: RAM,
     graphics_ram: RAM,
     storage_ram: RAM,
-    storage_zero_ram: RAM,     
+    storage_zero_ram: RAM,
+    io_registers: IORegs,     
 
     pub in_bios: bool,
 
@@ -101,6 +103,7 @@ impl BUS {
             graphics_ram: RAM::new((GRAPHICS_RAM_END - GRAPHICS_RAM_START + 1) as usize),
             storage_ram: RAM::new((INTERNAL_RAM_END - INTERNAL_RAM_START + 1) as usize),
             storage_zero_ram: RAM::new((ZERO_PAGE_RAM_END - ZERO_PAGE_RAM_START + 1) as usize),
+            io_registers: IORegs::new(),
 
             in_bios: true,
 
@@ -130,6 +133,8 @@ impl BUS {
         } else if self.region_zero_ram.in_region(addr) {
             let tru_addr = addr - self.region_zero_ram.start;
             return self.storage_zero_ram.storage[tru_addr as usize];
+        } else if self.region_io.in_region(addr) {
+            return self.io_registers.read_reg(addr);
         }
         panic!("Trying to read byte from unrecognized address: 0x{:X}", addr);
     }
@@ -144,6 +149,8 @@ impl BUS {
         } else if self.region_zero_ram.in_region(addr) {
             let tru_addr = addr - self.region_zero_ram.start;
             self.storage_zero_ram.storage[tru_addr as usize] = val;
+        } else if self.region_io.in_region(addr) {
+            return self.io_registers.write_reg(addr, val);
         } else {
             panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
         }

@@ -1,5 +1,5 @@
 
-#[derive(Default)]
+#[derive(Default, Clone, Copy)]
 pub struct Register<T: Copy> {
     val: T,
 }
@@ -25,11 +25,25 @@ impl Register<u8> {
     pub fn is_bit_set(&self, bit: u8) -> bool {
         return (self.val & ((1 as u8) << bit)) > 0;
     }
+
+    pub fn set_bit(&mut self, bit: u8, val: bool) {
+        match val {
+            true => {self.val = self.val | (1 << bit)}
+            false => {self.val = self.val & !(1 << bit)}
+        }
+    }
  }
 
  
 impl Register<u16> {
     pub fn is_bit_set(&self, bit: u8) -> bool {
         return (self.val & ((1 as u16) << bit)) > 0;
+    }
+
+    pub fn set_bit(&mut self, bit: u8, val: bool) {
+        match val {
+            true => {self.val = self.val | (1 << bit)}
+            false => {self.val = self.val & !(1 << bit)}
+        }
     }
 }
