@@ -141,7 +141,7 @@ impl CPU {
                         if bitwise {"(CB)"} else {""},
                         opcode,
                         self);
-                panic!("!!!!!");
+                panic!("Unimplemented instruction!");
             } 
 
             cycles += self.step(&instr_set, opcode, bitwise);            
