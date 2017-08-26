@@ -175,6 +175,7 @@ impl CPU {
     }
 
     pub fn write_byte(&mut self, addr: u16, val: u8) {
+        if addr == 0xFF50 { println!("BIOS Disabled!"); return;}
         self.bus.write_byte(addr, val)
     }
 

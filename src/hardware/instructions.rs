@@ -324,6 +324,16 @@ fn sub_to_a(val: u8, cpu: &mut CPU) {
     cpu.set_flag(CPUFlags::C, a < val);
 }
 
+fn add_to_a(val: u8, cpu: &mut CPU) {
+    let a = cpu.regs.a.r();
+    let r = a.wrapping_add(val);
+    cpu.regs.a.w(r);
+    cpu.set_flag(CPUFlags::Z, r == 0);
+    cpu.set_flag(CPUFlags::N, false);
+    cpu.set_flag(CPUFlags::H, ((a & 0x0F) + (val & 0x0F)) > 0x0F);
+    cpu.set_flag(CPUFlags::C, (a as u16) + (val as u16) > 0xFF);
+}
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -404,6 +414,15 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x7E, inst!("LD A,(HL)", |cpu, op|{let addr = cpu.regs.hl(); ld_into_a(cpu.read_byte(addr), cpu); 2})],
         [0x7F, inst!("LD A,A", |cpu, op|{ld_into_a(cpu.regs.a.r(), cpu); 1})],
 
+        [0x80, inst!("ADD A,B", |cpu, op|{add_to_a(cpu.regs.b.r(), cpu); 1})],
+        [0x81, inst!("ADD A,C", |cpu, op|{add_to_a(cpu.regs.c.r(), cpu); 1})],
+        [0x82, inst!("ADD A,D", |cpu, op|{add_to_a(cpu.regs.d.r(), cpu); 1})],
+        [0x83, inst!("ADD A,E", |cpu, op|{add_to_a(cpu.regs.e.r(), cpu); 1})],
+        [0x84, inst!("ADD A,H", |cpu, op|{add_to_a(cpu.regs.h.r(), cpu); 1})],
+        [0x85, inst!("ADD A,L", |cpu, op|{add_to_a(cpu.regs.l.r(), cpu); 1})],
+        [0x86, inst!("ADD A,(HL)", |cpu, op|{let addr = cpu.regs.hl(); add_to_a(cpu.read_byte(addr), cpu); 2})],
+        [0x87, inst!("ADD A,A", |cpu, op|{add_to_a(cpu.regs.a.r(), cpu); 1})],
+
         [0x88, inst!("ADC A,B", |cpu, op|{add_carry(cpu.regs.b.r(), cpu); 1})],
         [0x89, inst!("ADC A,C", |cpu, op|{add_carry(cpu.regs.c.r(), cpu); 1})],
         [0x8A, inst!("ADC A,D", |cpu, op|{add_carry(cpu.regs.d.r(), cpu); 1})],
@@ -413,14 +432,14 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x8E, inst!("ADC A,(HL)", |cpu, op|{let hl = cpu.regs.hl(); add_carry(cpu.read_byte(hl), cpu); 2})],
         [0x8F, inst!("ADC A,A", |cpu, op|{add_carry(cpu.regs.a.r(), cpu); 1})],
 
-        [0x90, inst!("SUB B", |cpu, op|{sub_to_a(cpu.regs.b.r(), cpu); 1})],
-        [0x91, inst!("SUB C", |cpu, op|{sub_to_a(cpu.regs.c.r(), cpu); 1})],
-        [0x92, inst!("SUB D", |cpu, op|{sub_to_a(cpu.regs.d.r(), cpu); 1})],
-        [0x93, inst!("SUB E", |cpu, op|{sub_to_a(cpu.regs.e.r(), cpu); 1})],
-        [0x94, inst!("SUB H", |cpu, op|{sub_to_a(cpu.regs.h.r(), cpu); 1})],
-        [0x95, inst!("SUB L", |cpu, op|{sub_to_a(cpu.regs.l.r(), cpu); 1})],
-        [0x96, inst!("SUB (HL)", |cpu, op|{let addr = cpu.regs.hl(); sub_to_a(cpu.read_byte(addr), cpu); 2})],
-        [0x97, inst!("SUB A", |cpu, op|{sub_to_a(cpu.regs.a.r(), cpu); 1})],
+        [0x90, inst!("SUB A,B", |cpu, op|{sub_to_a(cpu.regs.b.r(), cpu); 1})],
+        [0x91, inst!("SUB A,C", |cpu, op|{sub_to_a(cpu.regs.c.r(), cpu); 1})],
+        [0x92, inst!("SUB A,D", |cpu, op|{sub_to_a(cpu.regs.d.r(), cpu); 1})],
+        [0x93, inst!("SUB A,E", |cpu, op|{sub_to_a(cpu.regs.e.r(), cpu); 1})],
+        [0x94, inst!("SUB A,H", |cpu, op|{sub_to_a(cpu.regs.h.r(), cpu); 1})],
+        [0x95, inst!("SUB A,L", |cpu, op|{sub_to_a(cpu.regs.l.r(), cpu); 1})],
+        [0x96, inst!("SUB A,(HL)", |cpu, op|{let addr = cpu.regs.hl(); sub_to_a(cpu.read_byte(addr), cpu); 2})],
+        [0x97, inst!("SUB A,A", |cpu, op|{sub_to_a(cpu.regs.a.r(), cpu); 1})],
 
         [0xA8, inst!("XOR A,B", |cpu, op|{xor(cpu.regs.b.r(), cpu); 1})],
         [0xA9, inst!("XOR A,C", |cpu, op|{xor(cpu.regs.c.r(), cpu); 1})],
@@ -443,12 +462,13 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xC1, inst!("POP BC", |cpu, op|{pop_into!(cpu.regs.b, cpu.regs.c, cpu);3})],
         [0xC3, inst!("JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
         [0xC5, inst!("PUSH BC", |cpu, op|{let val = cpu.regs.bc();cpu.push_word(val); 4})],
+        [0xC6, inst!("ADD A,#", |cpu, op|{add_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
         [0xC9, inst!("RET", |cpu, op|{let target_addr = cpu.pop_word(); jump(target_addr, cpu); 2})],
         [0xCD, inst!("CALL nn", |cpu, op|{let next_inst = cpu.pc.r().wrapping_add(2); cpu.push_word(next_inst); jp_imm_cond!(true, cpu); 3})],
         
         [0xD1, inst!("POP DE", |cpu, op|{pop_into!(cpu.regs.d, cpu.regs.e, cpu);3})],
         [0xD5, inst!("PUSH DE", |cpu, op|{let val = cpu.regs.de();cpu.push_word(val); 4})],
-        [0xD6, inst!("SUB #", |cpu, op|{sub_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
+        [0xD6, inst!("SUB A,#", |cpu, op|{sub_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
 
         [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{let off = cpu.fetch_byte_immediate();ldh(cpu, off, false);3})],
         [0xE1, inst!("POP HL", |cpu, op|{pop_into!(cpu.regs.h, cpu.regs.l, cpu);3})],
