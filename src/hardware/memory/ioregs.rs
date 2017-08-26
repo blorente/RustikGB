@@ -3,7 +3,7 @@ use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::memory_region::BitAccess;
 
 const IO_MEMORY_START           : u16 = 0xFF00;
-const IO_MEMORY_END             : u16 = 0xFF7F;
+const IO_MEMORY_END             : u16 = 0xFF3F;
 
 pub struct IORegs {
     contents: [Register<u8>; 0x4C]

@@ -35,7 +35,7 @@ pub struct GPU {
     lcd_status:     Register<u8>,   
     scroll_y:       Register<u8>,
     scroll_x:       Register<u8>,
-    y_coord_:       Register<u8>,
+    y_coord:        Register<u8>,
     ly_compare:     Register<u8>,
     dma_start:      Register<u8>,
     bg_palette:     Register<u8>,
@@ -54,7 +54,7 @@ impl GPU {
             lcd_status:     Register::new(0x00),   
             scroll_y:       Register::new(0x00),
             scroll_x:       Register::new(0x00),
-            y_coord_:       Register::new(0x00),
+            y_coord:       Register::new(0x00),
             ly_compare:     Register::new(0x00),
             dma_start:      Register::new(0x00),
             bg_palette:     Register::new(0x00),
@@ -76,7 +76,20 @@ impl MemoryRegion for GPU {
         } else if self.sprite_oam.in_region(addr) {
             self.sprite_oam.read_byte(addr)
         } else {
-            panic!("GPU Can't access memory location {:04X}", addr);
+            match addr {            
+                LCD_CONTROL_ADDR    => {self.lcd_control.r()}
+                LCD_STATUS_ADDR     => {self.lcd_status.r()}
+                SCROLL_Y_ADDR       => {self.scroll_y.r()}
+                SCROLL_X_ADDR       => {self.scroll_x.r()}
+                Y_COORD_ADDR        => {self.y_coord.r()}
+                LY_COMPLARE_ADDR    => {self.ly_compare.r()}
+                DMA_START_ADDR      => {self.dma_start.r()}
+                BG_PALLETE_ADDR     => {self.bg_palette.r()}
+                OBJECT_PALETTE_ADDR => {self.obj_palette.r()}
+                WINDOW_Y_ADDR       => {self.window_y.r()}
+                WINDOW_X_ADDR       => {self.window_x.r()}
+                _ => {panic!("GPU Can't access memory location {:04X}", addr);}
+            }
         }
     }
 
@@ -86,13 +99,40 @@ impl MemoryRegion for GPU {
         } else if self.sprite_oam.in_region(addr) {
             self.sprite_oam.write_byte(addr, val)
         } else {
-            panic!("GPU Can't access memory location {:04X}", addr);
+            match addr {            
+                LCD_CONTROL_ADDR    => {self.lcd_control.w(val);}
+                LCD_STATUS_ADDR     => {self.lcd_status.w(val);}
+                SCROLL_Y_ADDR       => {self.scroll_y.w(val);}
+                SCROLL_X_ADDR       => {self.scroll_x.w(val);}
+                Y_COORD_ADDR        => {self.y_coord.w(val);}
+                LY_COMPLARE_ADDR    => {self.ly_compare.w(val);}
+                DMA_START_ADDR      => {self.dma_start.w(val);}
+                BG_PALLETE_ADDR     => {self.bg_palette.w(val);}
+                OBJECT_PALETTE_ADDR => {self.obj_palette.w(val);}
+                WINDOW_Y_ADDR       => {self.window_y.w(val);}
+                WINDOW_X_ADDR       => {self.window_x.w(val);}
+                _ => {panic!("GPU Can't access memory location {:04X}", addr);}
+            }
         }
     }
 
     fn in_region(&self, addr: u16) -> bool {
         self.vram.in_region(addr) 
         || self.vram.in_region(addr)
+        || match addr {            
+            LCD_CONTROL_ADDR    => {true}
+            LCD_STATUS_ADDR     => {true}
+            SCROLL_Y_ADDR       => {true}
+            SCROLL_X_ADDR       => {true}
+            Y_COORD_ADDR        => {true}
+            LY_COMPLARE_ADDR    => {true}
+            DMA_START_ADDR      => {true}
+            BG_PALLETE_ADDR     => {true}
+            OBJECT_PALETTE_ADDR => {true}
+            WINDOW_Y_ADDR       => {true}
+            WINDOW_X_ADDR       => {true}
+            _ => {false}
+        }
     }
 
     fn start(&self) -> u16 {
