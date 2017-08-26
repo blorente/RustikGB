@@ -4,24 +4,34 @@ use hardware::memory::memory_region::BitAccess;
 
 const IO_MEMORY_START           : u16 = 0xFF00;
 const IO_MEMORY_END             : u16 = 0xFF3F;
+const BOOT_ROM_ENABLE           : u16 = 0xFF50;
 
 pub struct IORegs {
-    contents: [Register<u8>; 0x4C]
+    contents: [Register<u8>; 0x3F],
+    boot_rom_enable: Register<u8>
 }
 
 impl MemoryRegion for IORegs {
     fn read_byte(&self, addr: u16) -> u8 {
-        let tru_addr = addr - self.start();
-        self.contents[tru_addr as usize].r()
+        if addr == BOOT_ROM_ENABLE {
+            self.boot_rom_enable.r()
+        } else {
+            let tru_addr = addr - self.start();
+            self.contents[tru_addr as usize].r()
+        }
     }
 
     fn write_byte(&mut self, addr: u16, val: u8) {
-        let tru_addr = addr - self.start();
-        self.contents[tru_addr as usize].w(val);
+        if addr == BOOT_ROM_ENABLE {
+            self.boot_rom_enable.w(val)
+        } else {
+            let tru_addr = addr - self.start();
+            self.contents[tru_addr as usize].w(val)
+        }
     }
 
     fn in_region(&self, addr: u16) -> bool {
-        addr >= self.start() && addr <= self.end()
+        (addr >= self.start() && addr <= self.end()) || addr == BOOT_ROM_ENABLE
     }
 
     fn start(&self) -> u16 {
@@ -35,8 +45,13 @@ impl MemoryRegion for IORegs {
 impl IORegs {
     pub fn new() -> Self {
         IORegs {
-            contents: [Register::new(0); 0x4C]
+            contents: [Register::new(0); 0x3F],
+            boot_rom_enable: Register::new(0)
         }
+    }
+
+    pub fn boot_rom_enabled(&self) -> bool {
+        self.boot_rom_enable.r() == 0
     }
 }
 

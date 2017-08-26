@@ -126,10 +126,7 @@ impl CPU {
             let mut opcode = self.fetch_byte_immediate();
             if opcode == 0xCB {bitwise = true; opcode = self.fetch_byte_immediate();}
 
-            debugger.stop_if_needed(old_pc, self, &instr_set);
-
-            if self.pc.r() >= 0x0100 {self.bus.in_bios = false;}
-                    
+            debugger.stop_if_needed(old_pc, self, &instr_set);              
              
             if !instr_set.is_implemented(opcode, bitwise) {
                 println!("Unimplemented instruction {}0x{:0X}\nProcessor state:\n{}", 
@@ -175,7 +172,6 @@ impl CPU {
     }
 
     pub fn write_byte(&mut self, addr: u16, val: u8) {
-        if addr == 0xFF50 { println!("BIOS Disabled!"); return;}
         self.bus.write_byte(addr, val)
     }
 
