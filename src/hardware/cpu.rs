@@ -126,16 +126,11 @@ impl CPU {
             let mut opcode = self.fetch_byte_immediate();
             if opcode == 0xCB {bitwise = true; opcode = self.fetch_byte_immediate();}
 
-            debugger.stop_if_needed(old_pc, self);
+            debugger.stop_if_needed(old_pc, self, &instr_set);
 
             if self.pc.r() >= 0x0100 {self.bus.in_bios = false;}
-
-            /*
-            println!("PC: {:04X}, Opcode {:02X}: {}",
-                    self.pc.r() - 1,
-                    opcode,
-                    instr_set.print_instr(opcode, bitwise)); 
-            */    
+                    
+             
             if !instr_set.is_implemented(opcode, bitwise) {
                 println!("Unimplemented instruction {}0x{:0X}\nProcessor state:\n{}", 
                         if bitwise {"(CB)"} else {""},

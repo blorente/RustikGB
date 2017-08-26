@@ -1,5 +1,6 @@
 use hardware::cpu::CPU;
 use std::collections::HashSet;
+use hardware::instructions::InstructionSet;
 
 #[derive(PartialEq)]
 enum DebuggerState {
@@ -9,19 +10,32 @@ enum DebuggerState {
 
 pub struct Debugger {
     breakpoints: HashSet<u16>,
-    state: DebuggerState
+    state: DebuggerState,
+    activated: bool,
 }
 
 impl Debugger {
     pub fn new() -> Self {
         Debugger {
             breakpoints: create_breakpoints(),
-            state: DebuggerState::RUN
+            state: DebuggerState::RUN,
+            activated: false,
         }
     }
 
-    pub fn stop_if_needed(&mut self, pc: u16, cpu: &CPU) {
+    pub fn stop_if_needed(&mut self, pc: u16, cpu: &CPU, instruction_set: &InstructionSet) {
+        if self.activated {
+            let mut opcode = cpu.read_byte(pc);
+            let mut bitwise = false;
+            if opcode == 0xCB {opcode = cpu.read_byte(pc + 1); bitwise = true;}
+            println!("PC: {:04X}, Opcode {:02X}: {}",
+                    pc,
+                    opcode,
+                    instruction_set.print_instr(opcode, bitwise)); 
+        }
+
         if self.breakpoints.contains(&pc) || self.state == DebuggerState::STEP {
+            self.activated = true;
             self.stop_and_ask(pc, cpu);
         }
     }
@@ -72,6 +86,6 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![
-        //0x66
+        0x70
     ]
 }
