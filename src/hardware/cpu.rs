@@ -130,15 +130,18 @@ impl CPU {
 
             if self.pc.r() >= 0x0100 {self.bus.in_bios = false;}
 
+            /*
             println!("PC: {:04X}, Opcode {:02X}: {}",
                     self.pc.r() - 1,
                     opcode,
-                    instr_set.print_instr(opcode, bitwise));      
+                    instr_set.print_instr(opcode, bitwise)); 
+            */    
             if !instr_set.is_implemented(opcode, bitwise) {
-                panic!("Unimplemented instruction {}0x{:0X}\nProcessor state:\n{}", 
+                println!("Unimplemented instruction {}0x{:0X}\nProcessor state:\n{}", 
                         if bitwise {"(CB)"} else {""},
                         opcode,
                         self);
+                panic!("!!!!!");
             } 
 
             cycles += self.step(&instr_set, opcode, bitwise);            
@@ -149,7 +152,7 @@ impl CPU {
     fn step(&mut self, instr_set: &instructions::InstructionSet, opcode: u8, bitwise: bool) -> u32 {
             let step_cycles;
             if !bitwise {
-                step_cycles = instr_set.exec(self, opcode) * 4; 
+                step_cycles = instr_set.exec(self, opcode) * 4;
             } else {
                 step_cycles = instr_set.exec_bit(self, opcode) * 4;
             }            

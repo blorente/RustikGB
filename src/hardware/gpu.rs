@@ -27,9 +27,13 @@ const OBJECT_PALETTE_2_ADDR         : u16 = 0xFF49;
 const WINDOW_Y_ADDR                 : u16 = 0xFF4A;
 const WINDOW_X_ADDR                 : u16 = 0xFF4B;
 
+const CYCLES_PER_LINE               : u32 = 456;
+
 pub struct GPU {
     vram: PLAIN_RAM,
     sprite_oam: PLAIN_RAM,
+
+    elapsed_cycles: u32,
 
     // IO Registers for the GPU
     lcd_control:    Register<u8>,  
@@ -52,6 +56,8 @@ impl GPU {
             vram: PLAIN_RAM::new(VRAM_START, VRAM_END),
             sprite_oam: PLAIN_RAM::new(SPRITE_OAM_START, SPRITE_OAM_END),
 
+            elapsed_cycles: 0x0,
+
             lcd_control:    Register::new(0x00),  
             lcd_status:     Register::new(0x00),   
             scroll_y:       Register::new(0x00),
@@ -68,7 +74,14 @@ impl GPU {
     }
 
     pub fn step(&mut self, cycles: u32) {
-        
+        self.elapsed_cycles += cycles;
+        if self.elapsed_cycles >= CYCLES_PER_LINE {
+
+            let line = (self.ly_coord.r() + 1) % 154;
+            self.ly_coord.w(line);
+
+            self.elapsed_cycles -= CYCLES_PER_LINE;
+        }
     }
 }
 
@@ -110,7 +123,7 @@ impl MemoryRegion for GPU {
                 SCROLL_X_ADDR           => {self.scroll_x.w(val);}
                 LY_COORD_ADDR           => {self.ly_coord.w(0x00);}
                 LYC_COMPLARE_ADDR       => {self.lyc_compare.w(val);}
-                DMA_START_ADDR          => {self.dma_start.w(val);}
+                DMA_START_ADDR          => {panic!("DMA Transfer disabled until it's implemented")}
                 BG_PALLETE_ADDR         => {self.bg_palette.w(val);}
                 OBJECT_PALETTE_1_ADDR   => {self.obj_palette_1.w(val);}
                 OBJECT_PALETTE_2_ADDR   => {self.obj_palette_2.w(val);}
