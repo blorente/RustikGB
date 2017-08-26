@@ -2,12 +2,11 @@ use hardware::cartridge::Cartridge;
 use hardware::memory::ioregs::IORegs;
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::memory_region::BitAccess;
+use hardware::memory::plain_ram::PLAIN_RAM;
+use hardware::gpu::GPU;
 
 const BIOS_START                : u16 = 0x0000;
 const BIOS_END                  : u16 = 0x00FF;
-
-const GRAPHICS_RAM_START        : u16 = 0x8000;
-const GRAPHICS_RAM_END          : u16 = 0x9FFF;
 
 const CARTRIDGE_RAM_START       : u16 = 0xA000;
 const CARTRIDGE_RAM_END         : u16 = 0xBFFF;
@@ -18,82 +17,14 @@ const INTERNAL_RAM_END          : u16 = 0xDFFF;
 const INTERNAL_RAM_ECHO_START   : u16 = 0xE000;
 const INTERNAL_RAM_ECHO_END     : u16 = 0xFDFF;
 
-const SPRITE_INFO_START         : u16 = 0xFE00;
-const SPRITE_INFO_END           : u16 = 0xFE9F;
-
 const ZERO_PAGE_RAM_START       : u16 = 0xFF80;
 const ZERO_PAGE_RAM_END         : u16 = 0xFFFF;
-
-struct PLAIN_RAM {
-    storage: Vec<u8>,
-    start: u16,
-    end: u16
-}
-
-impl PLAIN_RAM {
-    pub fn new(start: u16, end: u16) -> Self {
-        PLAIN_RAM {
-            start: start,
-            end: end,
-            storage: vec![0x0; end as usize - start as usize + 1]
-        }
-    }
-
-    pub fn from_data(start: u16, end: u16, data: Box<[u8]>) -> Self {
-        PLAIN_RAM {
-            start: start,
-            end: end,
-            storage: data.to_vec()
-        }
-    }
-}
-
-impl MemoryRegion for PLAIN_RAM {
-    fn read_byte(&self, addr: u16) -> u8 {
-        let tru_addr = addr - self.start();
-        self.storage[tru_addr as usize]
-    }
-
-
-    fn write_byte(&mut self, addr: u16, val: u8) {
-        let tru_addr = addr - self.start();
-        self.storage[tru_addr as usize] = val;
-    }
-
-    fn in_region(&self, addr: u16) -> bool {
-        addr >= self.start() && addr <= self.end()
-    }
-
-    fn start(&self) -> u16 {
-        self.start
-    }
-    fn end(&self) -> u16 {
-        self.end
-    }
-}
-
-impl BitAccess for PLAIN_RAM {    
-    fn read_bit(&self, addr: u16, bit: u8) -> bool {
-        let val = self.read_byte(addr);
-        val & (1 << bit) > 0
-    }
-
-    fn set_bit(&mut self, addr: u16, bit: u8, val: bool) {
-        let cur_val = self.read_byte(addr);
-        let tru_addr = addr - self.start();
-        if val {
-            self.storage[tru_addr as usize] = cur_val | (1 << bit);
-        } else {
-            self.storage[tru_addr as usize] = cur_val & !(1 << bit);
-        }
-    }
-}
 
 
 pub struct BUS {
     cartridge : Cartridge,
     boot_rom: PLAIN_RAM,
-    graphics_ram: PLAIN_RAM,
+    gpu: GPU,
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     io_registers: IORegs,     
@@ -106,7 +37,7 @@ impl BUS {
         BUS {
             cartridge: cartridge,
             boot_rom: PLAIN_RAM::from_data(BIOS_START, BIOS_END, boot_rom),
-            graphics_ram: PLAIN_RAM::new(GRAPHICS_RAM_START, GRAPHICS_RAM_END),
+            gpu: GPU::new(),
             storage_ram: PLAIN_RAM::new(INTERNAL_RAM_START, INTERNAL_RAM_END),
             storage_zero_ram: PLAIN_RAM::new(ZERO_PAGE_RAM_START, ZERO_PAGE_RAM_END),
             io_registers: IORegs::new(),
@@ -115,13 +46,17 @@ impl BUS {
         }
     }
 
+    pub fn step(&mut self, cycles: u32) {
+        self.gpu.step(cycles);
+    }
+
     pub fn read_byte(&self, addr: u16) -> u8 {
         if self.in_bios && self.boot_rom.in_region(addr) {
-            return self.boot_rom.storage[addr as usize];
+            return self.boot_rom.read_byte(addr);
         } else if self.cartridge.in_region(addr) {
             return self.cartridge.read_byte(addr)
-        } else if self.graphics_ram.in_region(addr) {
-            return self.graphics_ram.read_byte(addr);
+        } else if self.gpu.in_region(addr) {
+            return self.gpu.read_byte(addr);
         } else if self.storage_ram.in_region(addr) | (addr >= INTERNAL_RAM_ECHO_START && addr <= INTERNAL_RAM_ECHO_END) {
             return self.storage_ram.read_byte(addr);
         } else if self.storage_zero_ram.in_region(addr) {
@@ -133,8 +68,8 @@ impl BUS {
     }
 
     pub fn write_byte(&mut self, addr: u16, val: u8) {   
-        if self.graphics_ram.in_region(addr) {
-            self.graphics_ram.write_byte(addr, val);
+        if self.gpu.in_region(addr) {
+            self.gpu.write_byte(addr, val);
         } else if self.storage_ram.in_region(addr) | (addr >= INTERNAL_RAM_ECHO_START && addr <= INTERNAL_RAM_ECHO_END) {
             self.storage_ram.write_byte(addr, val);
         } else if self.storage_zero_ram.in_region(addr) {

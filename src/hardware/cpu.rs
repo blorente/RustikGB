@@ -135,19 +135,27 @@ impl CPU {
                     opcode,
                     instr_set.print_instr(opcode, bitwise));      
             if !instr_set.is_implemented(opcode, bitwise) {
-                println!("Unimplemented instruction {}0x{:0X}", 
+                panic!("Unimplemented instruction {}0x{:0X}\nProcessor state:\n{}", 
                         if bitwise {"(CB)"} else {""},
-                        opcode);
-                println!("Processor state:\n{}", self);
-                break;
-            } else {
-                if !bitwise {
-                    cycles += instr_set.exec(self, opcode); 
-                } else {
-                    cycles += instr_set.exec_bit(self, opcode);
-                }
-            }
+                        opcode,
+                        self);
+            } 
+
+            cycles += self.step(&instr_set, opcode, bitwise);            
+            
         }
+    }
+
+    fn step(&mut self, instr_set: &instructions::InstructionSet, opcode: u8, bitwise: bool) -> u32 {
+            let step_cycles;
+            if !bitwise {
+                step_cycles = instr_set.exec(self, opcode) * 4; 
+            } else {
+                step_cycles = instr_set.exec_bit(self, opcode) * 4;
+            }            
+
+            self.bus.step(step_cycles);
+            step_cycles
     }
 
     pub fn fetch_byte_immediate(&mut self) -> u8 {

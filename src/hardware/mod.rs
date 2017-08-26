@@ -4,3 +4,4 @@ pub mod instructions;
 pub mod memory;
 pub mod debugger;
 pub mod registers;
+pub mod gpu;

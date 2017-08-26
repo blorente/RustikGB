@@ -14,7 +14,7 @@ impl<'i> Instruction<'i> {
         }
     }
 
-    pub fn execute(&mut self, cpu: &mut CPU, opcode: u8) -> u32 {
+    pub fn execute(&self, cpu: &mut CPU, opcode: u8) -> u32 {
         let closure = &self.op;
         closure(cpu, opcode)
     }
@@ -41,11 +41,11 @@ impl<'i> InstructionSet<'i> {
         
     }
 
-    pub fn exec(&mut self, cpu: &mut CPU, opcode: u8) -> u32 {
+    pub fn exec(&self, cpu: &mut CPU, opcode: u8) -> u32 {
         self.normal_instructions[opcode as usize].execute(cpu, opcode)
     }
 
-    pub fn exec_bit(&mut self, cpu: &mut CPU, opcode: u8) -> u32 {
+    pub fn exec_bit(&self, cpu: &mut CPU, opcode: u8) -> u32 {
         self.bitwise_instructions[opcode as usize].execute(cpu, opcode)
     }
 
