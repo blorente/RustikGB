@@ -38,8 +38,6 @@ impl Debugger {
         println!("Debug Command: ");
         let mut command: String = read!();
         while !good_command {
-            
-        
             match &*command {
                 "n" => {self.state = DebuggerState::STEP; good_command = true}
                 "c" => {self.state = DebuggerState::RUN; good_command = true}                

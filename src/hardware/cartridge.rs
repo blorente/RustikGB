@@ -1,5 +1,9 @@
 use std::fmt;
 use std::str;
+use hardware::memory::memory_region::MemoryRegion;
+
+const ROM_START                 : u16 = 0x0000;
+const ROM_END                   : u16 = 0x7FFF;
 
 pub enum CartridgeType {
     ROM_ONLY, // 00
@@ -99,14 +103,9 @@ impl Cartridge {
         raw_rom.clone()
     }
 
-    /// Read the byte in addr
-    pub fn read_byte(&self, addr: u16) -> u8 {
-        self.data[addr as usize]
-    }
-
     /// Read the bytes in [addr, addr + 1]
     pub fn read_word(&self, addr: u16) -> u16 {
-        let lo = (self.data[addr as usize] as u16);
+        let lo = self.data[addr as usize] as u16;
         let hi = (self.data[(addr + 1) as usize] as u16) << 8;
         (hi | lo)
     }
@@ -116,4 +115,26 @@ impl fmt::Display for Cartridge {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
         writeln!(fmt, "{}", self.header)
     }
+}
+
+impl MemoryRegion for Cartridge {
+    /// Read the byte in addr
+    fn read_byte(&self, addr: u16) -> u8 {
+        self.data[addr as usize]
+    }
+    fn write_byte(&mut self, addr: u16, val: u8) {
+        panic!("Probably shouldn't be writing to the cartridge ROM");
+    }
+
+    fn in_region(&self, addr: u16) -> bool {
+        addr >= self.start() && addr <= self.end()
+    }
+
+    fn start(&self) -> u16 {
+        ROM_START
+    }
+    fn end(&self) -> u16 {
+        ROM_END
+    }
+
 }
