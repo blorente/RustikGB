@@ -11,11 +11,13 @@ pub struct IORegs {
 
 impl MemoryRegion for IORegs {
     fn read_byte(&self, addr: u16) -> u8 {
-        self.contents[(addr - 0xFF00) as usize].r()
+        let tru_addr = addr - self.start();
+        self.contents[tru_addr as usize].r()
     }
 
     fn write_byte(&mut self, addr: u16, val: u8) {
-        self.contents[(addr - 0xFF00) as usize].w(val);
+        let tru_addr = addr - self.start();
+        self.contents[tru_addr as usize].w(val);
     }
 
     fn in_region(&self, addr: u16) -> bool {
@@ -40,11 +42,13 @@ impl IORegs {
 
 impl BitAccess for IORegs {
     fn read_bit(&self, addr: u16, bit: u8) -> bool {
-        self.contents[(addr - 0xFF00) as usize].is_bit_set(bit)
+        let tru_addr = addr - self.start();
+        self.contents[tru_addr as usize].is_bit_set(bit)
     }
 
     fn set_bit(&mut self, addr: u16, bit: u8, val: bool) {
-        self.contents[(addr - 0xFF00) as usize].set_bit(bit, val);
+        let tru_addr = addr - self.start();
+        self.contents[tru_addr as usize].set_bit(bit, val);
     }
 }
 

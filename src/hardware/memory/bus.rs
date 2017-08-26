@@ -25,7 +25,7 @@ const ZERO_PAGE_RAM_START       : u16 = 0xFF80;
 const ZERO_PAGE_RAM_END         : u16 = 0xFFFF;
 
 struct PLAIN_RAM {
-    pub storage: Vec<u8>,
+    storage: Vec<u8>,
     start: u16,
     end: u16
 }
@@ -50,17 +50,20 @@ impl PLAIN_RAM {
 
 impl MemoryRegion for PLAIN_RAM {
     fn read_byte(&self, addr: u16) -> u8 {
-        self.storage[addr as usize]
+        let tru_addr = addr - self.start();
+        self.storage[tru_addr as usize]
     }
 
 
     fn write_byte(&mut self, addr: u16, val: u8) {
-        self.storage[addr as usize] = val;
+        let tru_addr = addr - self.start();
+        self.storage[tru_addr as usize] = val;
     }
 
     fn in_region(&self, addr: u16) -> bool {
         addr >= self.start() && addr <= self.end()
     }
+
     fn start(&self) -> u16 {
         self.start
     }
@@ -77,10 +80,11 @@ impl BitAccess for PLAIN_RAM {
 
     fn set_bit(&mut self, addr: u16, bit: u8, val: bool) {
         let cur_val = self.read_byte(addr);
+        let tru_addr = addr - self.start();
         if val {
-            self.storage[addr as usize] = cur_val | (1 << bit);
+            self.storage[tru_addr as usize] = cur_val | (1 << bit);
         } else {
-            self.storage[addr as usize] = cur_val & !(1 << bit);
+            self.storage[tru_addr as usize] = cur_val & !(1 << bit);
         }
     }
 }
@@ -117,14 +121,11 @@ impl BUS {
         } else if self.cartridge.in_region(addr) {
             return self.cartridge.read_byte(addr)
         } else if self.graphics_ram.in_region(addr) {
-            let tru_addr = addr - self.graphics_ram.start;
-            return self.graphics_ram.storage[tru_addr as usize];
+            return self.graphics_ram.read_byte(addr);
         } else if self.storage_ram.in_region(addr) | (addr >= INTERNAL_RAM_ECHO_START && addr <= INTERNAL_RAM_ECHO_END) {
-            let tru_addr = addr - self.storage_ram.start;
-            return self.storage_ram.storage[tru_addr as usize];
+            return self.storage_ram.read_byte(addr);
         } else if self.storage_zero_ram.in_region(addr) {
-            let tru_addr = addr - self.storage_zero_ram.start;
-            return self.storage_zero_ram.storage[tru_addr as usize];
+            return self.storage_zero_ram.read_byte(addr);
         } else if self.io_registers.in_region(addr) {
             return self.io_registers.read_byte(addr);
         }
@@ -133,16 +134,13 @@ impl BUS {
 
     pub fn write_byte(&mut self, addr: u16, val: u8) {   
         if self.graphics_ram.in_region(addr) {
-            let tru_addr = addr - self.graphics_ram.start;
-            self.graphics_ram.storage[tru_addr as usize] = val;
+            self.graphics_ram.write_byte(addr, val);
         } else if self.storage_ram.in_region(addr) | (addr >= INTERNAL_RAM_ECHO_START && addr <= INTERNAL_RAM_ECHO_END) {
-            let tru_addr = addr - self.storage_ram.start;
-            self.storage_ram.storage[tru_addr as usize] = val;
+            self.storage_ram.write_byte(addr, val);
         } else if self.storage_zero_ram.in_region(addr) {
-            let tru_addr = addr - self.storage_zero_ram.start;
-            self.storage_zero_ram.storage[tru_addr as usize] = val;
+            self.storage_zero_ram.write_byte(addr, val);
         } else if self.io_registers.in_region(addr) {
-            return self.io_registers.write_byte(addr, val);
+            self.io_registers.write_byte(addr, val);
         } else {
             panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
         }
