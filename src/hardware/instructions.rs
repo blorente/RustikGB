@@ -364,7 +364,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x1B, inst!("DEC DE", |cpu, op|{dec_16!("DE", cpu); 2})], 
         [0x1C, inst!("INC E", |cpu, op| {inc!(cpu.regs.e, cpu, false); 1})], 
         [0x1D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.e, cpu, false); 1})],      
-        [0x1E, inst!("LD E,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],
+        [0x1E, inst!("LD E,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.e, cpu); 2})],
 
         [0x20, inst!("JR NZ,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NZ){3} else {2}})],
         [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.h, cpu.regs.l, cpu); 3})],   
