@@ -1,7 +1,6 @@
 use hardware::cartridge::Cartridge;
 use hardware::memory::ioregs::IORegs;
 use hardware::memory::memory_region::MemoryRegion;
-use hardware::memory::memory_region::BitAccess;
 use hardware::memory::plain_ram::PLAIN_RAM;
 use hardware::gpu::GPU;
 

@@ -37,8 +37,7 @@ impl<'i> InstructionSet<'i> {
         match bitwise {
             false => {self.normal_instructions[opcode as usize].dissassembly != "Unimp"}
             true => {self.bitwise_instructions[opcode as usize].dissassembly != "Unimp"}
-        }
-        
+        }        
     }
 
     pub fn exec(&self, cpu: &mut CPU, opcode: u8) -> u32 {
@@ -56,8 +55,6 @@ impl<'i> InstructionSet<'i> {
         }
     }
 }
-
-
 
 macro_rules! inst {
     ($x:expr, $f:expr) => {{

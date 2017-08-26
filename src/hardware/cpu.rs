@@ -117,7 +117,7 @@ impl CPU {
     }
 
     pub fn run(&mut self) {
-        let mut instr_set = instructions::InstructionSet::new();
+        let instr_set = instructions::InstructionSet::new();
         let mut debugger = debugger::Debugger::new();
         let mut cycles : u32 = 0;
         loop {
