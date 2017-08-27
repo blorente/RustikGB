@@ -23,6 +23,16 @@ impl PLAIN_RAM {
             storage: data.to_vec()
         }
     }
+
+    pub fn load_chunk(&self, start_addr: u16, amount: u16) -> &[u8] {
+        if !self.in_region(start_addr) || !self.in_region(start_addr + amount) {
+            panic!("The address range ({:4X}, {:4X}) is not inside this region", 
+                    start_addr, 
+                    start_addr + amount);
+        }
+        let tru_addr = (start_addr - self.start()) as usize;
+        &self.storage[tru_addr..tru_addr+(amount as usize)]
+    }
 }
 
 impl MemoryRegion for PLAIN_RAM {

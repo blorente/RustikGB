@@ -5,19 +5,23 @@ use hardware::registers::Register;
 use hardware::video::screen::Screen;
 use hardware::video::screen::SCREEN_WIDTH;
 use hardware::video::screen::SCREEN_HEIGHT;
+use hardware::hex_print;
 
+use std::fmt;
 use rand;
 
 const SPRITE_OAM_START              : u16 = 0xFE00;
 const SPRITE_OAM_END                : u16 = 0xFE9F;
 
+// The VRAM is subdivided into sections.
+// Still, it is useful to know the boundaries
+// just for interfacing purpouses
 const VRAM_START                    : u16 = 0x8000;
-// Use in case we need more granularity in the VRAM
-const SPRITE_PATTERN_TABLE_START    : u16 = 0x8000;
-const SPRITE_PATTERN_TABLE_END      : u16 = 0x8FFF;
-const PROBABLY_TILE_TABLE_START     : u16 = 0x9000;
-const PROBABLY_TILE_TABLE_END       : u16 = 0x9FFF;
 const VRAM_END                      : u16 = 0x9FFF;
+// Granular VRAM regions
+const BG_TILE_MAP_1_START           : u16 = 0x9800;
+const BG_TILE_MAP_2_START           : u16 = 0x9C00;
+
 
 const LCD_CONTROL_ADDR              : u16 = 0xFF40;
 const LCD_STATUS_ADDR               : u16 = 0xFF41;
@@ -32,11 +36,21 @@ const OBJECT_PALETTE_2_ADDR         : u16 = 0xFF49;
 const WINDOW_Y_ADDR                 : u16 = 0xFF4A;
 const WINDOW_X_ADDR                 : u16 = 0xFF4B;
 
-const CYCLES_PER_LINE               : u32 = 456;
+// Timing stuff
+const CYCLES_PER_LINE               : u32 =  456;
+const HBLANK_CYCLES                 : u32 =  204;
+const VRAM_CYCLES                   : u32 =  172;
+const OAM_CYCLES                    : u32 =   80;
+const VBLANK_CYCLES                 : u32 = 4560;
+
+const VBLANK_START_LINE             : u8  = 144;
+const VBLANK_END_LINE               : u8  = 153;
 
 // Relevant bits
 // LCD Control Register
 const B_LCD_DISPLAY_ENABLED         : u8 = 7;
+const B_BG_WIN_TILE_DATA_SELECT     : u8 = 4;
+const B_BG_TILE_MAP_SELECT          : u8 = 3;
 
 // LCD Status Register
 const B_LYC_COINCIDENCE_INTERRUPT   : u8 = 6;
@@ -46,7 +60,8 @@ pub struct GPU {
     vram: PLAIN_RAM,
     sprite_oam: PLAIN_RAM,
 
-    elapsed_cycles: u32,
+    lcdc_mode: LCDCMode,
+    mode_cycles: u32,
 
     // IO Registers for the GPU
     lcd_control:    Register<u8>,  
@@ -61,16 +76,33 @@ pub struct GPU {
     obj_palette_2:  Register<u8>,
     window_y:       Register<u8>,
     window_x:       Register<u8>,
+
+    debug_color:    [u8; 3]
+}
+
+#[derive(PartialEq, Debug)]
+enum LCDCMode {
+    HBLANK  = 0b00,    
+    VBLANK  = 0b01,    
+    OAM     = 0b10,
+    VRAM    = 0b11,
+}
+
+
+impl fmt::Display for LCDCMode {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {        
+        write!(fmt, "{:?}", self)
+    }
 }
 
 impl GPU {
     pub fn new() -> Self {
         GPU {
-
             vram: PLAIN_RAM::new(VRAM_START, VRAM_END),
             sprite_oam: PLAIN_RAM::new(SPRITE_OAM_START, SPRITE_OAM_END),
 
-            elapsed_cycles: 0x0,
+            lcdc_mode: LCDCMode::OAM,
+            mode_cycles: 0x0,
 
             lcd_control:    Register::new(0x00),  
             lcd_status:     Register::new(0x00),   
@@ -83,35 +115,117 @@ impl GPU {
             obj_palette_1:  Register::new(0x00),
             obj_palette_2:  Register::new(0x00),
             window_y:       Register::new(0x00),
-            window_x:       Register::new(0x00)
+            window_x:       Register::new(0x00),
+
+            debug_color:    [0; 3]
         }
     }
 
     pub fn step(&mut self, cycles: u32, screen: &mut Screen) {
         // TODO: Uncomment when more advanced with tetris, See if it bootstrap really switches it off
         //screen.turn_on_off(self.lcd_control.is_bit_set(B_LCD_DISPLAY_ENABLED));
+        
+        //println!("Mode: {} Cycles: {}", self.lcdc_mode, self.mode_cycles);
+        self.update_mode(cycles);  
 
-        self.elapsed_cycles += cycles;
-        if self.elapsed_cycles >= CYCLES_PER_LINE {
-
-            let line = (self.ly_coord.r() + 1) % 154;
-            self.ly_coord.w(line);
-
-            self.elapsed_cycles -= CYCLES_PER_LINE;
+        match self.lcdc_mode {
+            LCDCMode::VBLANK => {
+                if self.ly_coord.r() == 154 {
+                    self.debug_color = [
+                        rand::random::<u8>(),
+                        rand::random::<u8>(),
+                        rand::random::<u8>()
+                    ]
+                }
+            }
+            _ => {
+                let y = self.ly_coord.r();
+                screen.set_pixel(y, 0, self.debug_color);
+                screen.set_pixel(y, 1, self.debug_color);
+                screen.set_pixel(y, 2, self.debug_color);
+                screen.set_pixel(y, 3, self.debug_color);
+                screen.set_pixel(y, 4, self.debug_color);
+                screen.set_pixel(y, 5, self.debug_color);
+                screen.set_pixel(y, 6, self.debug_color);
+            }
         }
+    }    
+
+    fn update_mode(&mut self, cycles: u32) {
+        self.mode_cycles += cycles;
+        match self.lcdc_mode {
+            LCDCMode::HBLANK => {                
+                if self.need_change_mode(HBLANK_CYCLES) {
+                    self.render_scan_line();
+                    self.increase_line();
+                    if self.ly_coord.r() == VBLANK_START_LINE {
+                        self.change_mode_and_interrupt(LCDCMode::VBLANK);
+                    } else {
+                        self.change_mode_and_interrupt(LCDCMode::OAM);
+                    }
+                    self.mode_cycles -= HBLANK_CYCLES;
+                }
+            }
+            LCDCMode::VBLANK => {
+                if self.mode_cycles > CYCLES_PER_LINE {
+                    self.increase_line();
+                    self.mode_cycles -= CYCLES_PER_LINE;
+                }
+                if self.ly_coord.r() == VBLANK_END_LINE {
+                    self.change_mode_and_interrupt(LCDCMode::OAM);                   
+                }
+            }
+            LCDCMode::OAM => {
+                if self.need_change_mode(OAM_CYCLES) {
+                    self.change_mode_and_interrupt(LCDCMode::VRAM);
+                    self.mode_cycles -= OAM_CYCLES;
+                }
+            }
+            LCDCMode::VRAM => {
+                if self.need_change_mode(VRAM_CYCLES) {
+                    self.change_mode_and_interrupt(LCDCMode::HBLANK);
+                    self.mode_cycles -= VRAM_CYCLES;
+                }
+            }
+        }
+    }
+
+    fn need_change_mode(&mut self, max_cycles: u32) -> bool {        
+        self.mode_cycles > max_cycles
+    }
+
+    fn increase_line(&mut self) {        
+        let line = (self.ly_coord.r() + 1) % (VBLANK_END_LINE + 1);
+        self.ly_coord.w(line);
+
+        //println!("{} Line increased to {}", self.lcdc_mode, self.ly_coord.r());       
 
         // Check the value of LY with LYC register, and request interrupts if necessary
         if self.ly_coord.r() == self.lyc_compare.r() {
             self.lcd_status.set_bit(B_LYC_COINCIDENCE_INTERRUPT, true);
             // TODO: Request a STAT interrupt
         }
+    }
 
-        if self.ly_coord.r() > 144 {
-            screen.set_pixel(
-                rand::random::<u8>() % SCREEN_WIDTH as u8, 
-                rand::random::<u8>() % SCREEN_HEIGHT as u8, 
-                224, 51, 224);
-        }
+    fn change_mode_and_interrupt(&mut self, target: LCDCMode) {
+        //println!("Mode changed to {}", target); 
+        self.lcdc_mode = target;
+        // TODO: Interrupts go here
+    }
+
+    fn render_scan_line(&mut self) {
+        self.render_background_line();
+    }
+
+    fn render_background_line(&mut self) {
+        let background_tile_map_start = 
+            if self.lcd_control.is_bit_set(B_BG_TILE_MAP_SELECT) {
+                BG_TILE_MAP_2_START
+            } else {
+                BG_TILE_MAP_1_START
+            };
+        let background_tile_map = &self.vram.load_chunk(background_tile_map_start, 32 * 32);
+        hex_print("Background Tile Map", background_tile_map, 32);
     }
 }
 

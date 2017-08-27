@@ -1,7 +1,5 @@
 use piston_window::*;
 use texture::*;
-use image::ImageBuffer;
-use image::Rgba;
 use image;
 
 pub const SCREEN_WIDTH: usize = 160;
@@ -59,11 +57,11 @@ impl Screen {
         
     }
 
-    pub fn set_pixel(&mut self, x: u8, y: u8, r: u8, g: u8, b: u8) {        
+    pub fn set_pixel(&mut self, x: u8, y: u8, rgb: [u8; 3]) {        
         let first_index = 4 * (x as usize + (y as usize * SCREEN_WIDTH));
-        self.framebuffer[first_index]       = r;
-        self.framebuffer[first_index + 1]   = g;
-        self.framebuffer[first_index + 2]   = b;
+        self.framebuffer[first_index]       = rgb[0];
+        self.framebuffer[first_index + 1]   = rgb[1];
+        self.framebuffer[first_index + 2]   = rgb[2];
         self.framebuffer[first_index + 3]   = 255;
     }
 
