@@ -1,5 +1,5 @@
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct Register<T: Copy> {
     val: T,
 }

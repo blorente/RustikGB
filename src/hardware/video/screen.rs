@@ -2,8 +2,8 @@ use piston_window::*;
 use texture::*;
 use image;
 
-pub const SCREEN_WIDTH: usize = 160;
-pub const SCREEN_HEIGHT: usize = 144;
+pub const SCREEN_WIDTH: usize = 144;
+pub const SCREEN_HEIGHT: usize = 160;
 pub const SCREEN_DIMS: [u32; 2] = [SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32];
 const FRAMEBUFFER_SIZE: usize = (SCREEN_WIDTH * SCREEN_HEIGHT * 4) as usize;
 const SCREEN_SCALE : f64 = 2.0;

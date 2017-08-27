@@ -6,58 +6,16 @@ use hardware::video::screen::Screen;
 use hardware::video::screen::SCREEN_WIDTH;
 use hardware::video::screen::SCREEN_HEIGHT;
 use hardware::hex_print;
+use hardware::video::gpu_constants::*;
+use hardware::video::tile_set::TileSet;
 
 use std::fmt;
 use rand;
 
-const SPRITE_OAM_START              : u16 = 0xFE00;
-const SPRITE_OAM_END                : u16 = 0xFE9F;
-
-// The VRAM is subdivided into sections.
-// Still, it is useful to know the boundaries
-// just for interfacing purpouses
-const VRAM_START                    : u16 = 0x8000;
-const VRAM_END                      : u16 = 0x9FFF;
-// Granular VRAM regions
-const BG_TILE_MAP_1_START           : u16 = 0x9800;
-const BG_TILE_MAP_2_START           : u16 = 0x9C00;
-
-
-const LCD_CONTROL_ADDR              : u16 = 0xFF40;
-const LCD_STATUS_ADDR               : u16 = 0xFF41;
-const SCROLL_Y_ADDR                 : u16 = 0xFF42;
-const SCROLL_X_ADDR                 : u16 = 0xFF43;
-const LY_COORD_ADDR                 : u16 = 0xFF44;
-const LYC_COMPLARE_ADDR             : u16 = 0xFF45;
-const DMA_START_ADDR                : u16 = 0xFF46;
-const BG_PALLETE_ADDR               : u16 = 0xFF47;
-const OBJECT_PALETTE_1_ADDR         : u16 = 0xFF48;
-const OBJECT_PALETTE_2_ADDR         : u16 = 0xFF49;
-const WINDOW_Y_ADDR                 : u16 = 0xFF4A;
-const WINDOW_X_ADDR                 : u16 = 0xFF4B;
-
-// Timing stuff
-const CYCLES_PER_LINE               : u32 =  456;
-const HBLANK_CYCLES                 : u32 =  204;
-const VRAM_CYCLES                   : u32 =  172;
-const OAM_CYCLES                    : u32 =   80;
-const VBLANK_CYCLES                 : u32 = 4560;
-
-const VBLANK_START_LINE             : u8  = 144;
-const VBLANK_END_LINE               : u8  = 153;
-
-// Relevant bits
-// LCD Control Register
-const B_LCD_DISPLAY_ENABLED         : u8 = 7;
-const B_BG_WIN_TILE_DATA_SELECT     : u8 = 4;
-const B_BG_TILE_MAP_SELECT          : u8 = 3;
-
-// LCD Status Register
-const B_LYC_COINCIDENCE_INTERRUPT   : u8 = 6;
-
 pub struct GPU {
 
-    vram: PLAIN_RAM,
+    pub tile_data: TileSet,
+    tile_maps: PLAIN_RAM,
     sprite_oam: PLAIN_RAM,
 
     lcdc_mode: LCDCMode,
@@ -98,7 +56,8 @@ impl fmt::Display for LCDCMode {
 impl GPU {
     pub fn new() -> Self {
         GPU {
-            vram: PLAIN_RAM::new(VRAM_START, VRAM_END),
+            tile_data: TileSet::new(),
+            tile_maps: PLAIN_RAM::new(TILE_MAPS_START, TILE_MAPS_END),
             sprite_oam: PLAIN_RAM::new(SPRITE_OAM_START, SPRITE_OAM_END),
 
             lcdc_mode: LCDCMode::OAM,
@@ -218,21 +177,64 @@ impl GPU {
     }
 
     fn render_background_line(&mut self) {
+        /*
         let background_tile_map_start = 
             if self.lcd_control.is_bit_set(B_BG_TILE_MAP_SELECT) {
-                BG_TILE_MAP_2_START
+                TILE_MAP_1_START
             } else {
-                BG_TILE_MAP_1_START
+                TILE_MAP_0_START
             };
-        let background_tile_map = &self.vram.load_chunk(background_tile_map_start, 32 * 32);
-        hex_print("Background Tile Map", background_tile_map, 32);
+        let signed_tile_maps: bool;
+        let background_tile_data_start = 
+            if self.lcd_control.is_bit_set(B_BG_WIN_TILE_DATA_SELECT) {
+                signed_tile_maps = false;
+                BG_WIN_TILE_DATA_1_START
+            } else {
+                signed_tile_maps = true;
+                BG_WIN_TILE_DATA_0_START
+            };
+
+        let first_tile_index_y = (((self.ly_coord.r() + self.scroll_y.r()) / 8) % 32) as u16;
+        let first_tile_index_x = ((self.scroll_x.r() / 8) % 32) as u16;
+        let first_tile_offset = ((self.ly_coord.r() + self.scroll_y.r()) % 8) as u16;
+
+         // Get tile indices of each tile in the current line
+        let mut tile_indices : [u8; 20] = [0; 20];
+        for x in 0..20u16 {
+            tile_indices[x as usize] = self.vram.read_byte(background_tile_map_start + (first_tile_index_y * 32) + first_tile_index_x + x);
+        }
+
+        let mut tile_data : [u8; 40] = [0; 40];
+        for x in 0..20u16 {
+            let tile_index = tile_indices[x as usize];
+            let tru_addr: u16 = 
+                if signed_tile_maps {
+                    (background_tile_data_start as u32 as i32 + (tile_index as i8 as i32)) as u16
+                } else {
+                    background_tile_data_start + (tile_index as u16)
+                };
+            tile_data[(x * 2) as usize] = self.vram.read_byte(tru_addr);
+            tile_data[((x * 2) + 1) as usize] = self.vram.read_byte(tru_addr + 1);
+        }
+
+        //println!("Tile data for line {} with offset {}", self.ly_coord.r(), first_tile_offset);
+        //hex_print("Tile indices", &tile_indices, 10);
+        //hex_print("Tile data", &tile_data, 10);
+
+        for pixel in 0..SCREEN_HEIGHT {
+            let index = (pixel / 8);
+            let offset = pixel % 8;
+        }  
+        */      
     }
 }
 
 impl MemoryRegion for GPU {
     fn read_byte(&self, addr: u16) -> u8 {
-        if self.vram.in_region(addr) {
-            self.vram.read_byte(addr)
+        if self.tile_data.in_region(addr) {
+            self.tile_data.read_byte(addr)
+        } else if self.tile_maps.in_region(addr) {
+            self.tile_maps.read_byte(addr)
         } else if self.sprite_oam.in_region(addr) {
             self.sprite_oam.read_byte(addr)
         } else {
@@ -255,8 +257,10 @@ impl MemoryRegion for GPU {
     }
 
     fn write_byte(&mut self, addr: u16, val: u8) {
-        if self.vram.in_region(addr) {
-            self.vram.write_byte(addr, val)
+        if self.tile_data.in_region(addr) {
+            self.tile_data.write_byte(addr, val);
+        } else if self.tile_maps.in_region(addr) {
+            self.tile_maps.write_byte(addr, val);
         } else if self.sprite_oam.in_region(addr) {
             self.sprite_oam.write_byte(addr, val)
         } else {
@@ -279,8 +283,8 @@ impl MemoryRegion for GPU {
     }
 
     fn in_region(&self, addr: u16) -> bool {
-        self.vram.in_region(addr) 
-        || self.vram.in_region(addr)
+        self.tile_data.in_region(addr) 
+        || self.tile_maps.in_region(addr)
         || match addr {            
             LCD_CONTROL_ADDR        => {true}
             LCD_STATUS_ADDR         => {true}

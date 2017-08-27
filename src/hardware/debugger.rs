@@ -33,8 +33,12 @@ impl Debugger {
                     opcode,
                     instruction_set.print_instr(opcode, bitwise)); 
         }
+        
+        if self.breakpoints.contains(&pc) {
+            cpu.bus.gpu.tile_data.dump_tiles();
+        }
 
-        if self.breakpoints.contains(&pc) || self.state == DebuggerState::STEP {
+        if self.breakpoints.contains(&pc) || self.state == DebuggerState::STEP {            
             self.activated = true;
             self.stop_and_ask(pc, cpu);
         }
@@ -86,6 +90,6 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![
-        
+        0x100
     ]
 }

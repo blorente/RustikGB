@@ -30,12 +30,12 @@ fn main() {
             Event::Render(_) => {
                 // TODO: Move out of the render event       
                 processor.run_frame(&mut debugger, &instructions);
-                processor.bus.screen.update(&mut window, e);                
+                processor.bus.screen.update(&mut window, e);
             }
             _ => {}
         }
-
     }
+
 }
 
 

@@ -25,7 +25,7 @@ const ZERO_PAGE_RAM_END         : u16 = 0xFFFF;
 pub struct BUS {
     cartridge : Cartridge,
     boot_rom: PLAIN_RAM,
-    gpu: GPU,
+    pub gpu: GPU,
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     pub screen: Screen,    
