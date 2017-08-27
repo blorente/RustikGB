@@ -27,8 +27,6 @@ pub struct BUS {
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     io_registers: IORegs,     
-
-    pub in_bios: bool
 }
 
 impl BUS {
@@ -40,8 +38,6 @@ impl BUS {
             storage_ram: PLAIN_RAM::new(INTERNAL_RAM_START, INTERNAL_RAM_END),
             storage_zero_ram: PLAIN_RAM::new(ZERO_PAGE_RAM_START, ZERO_PAGE_RAM_END),
             io_registers: IORegs::new(),
-
-            in_bios: true
         }
     }
 
@@ -50,7 +46,7 @@ impl BUS {
     }
 
     pub fn read_byte(&self, addr: u16) -> u8 {
-        if self.in_bios && self.boot_rom.in_region(addr) {
+        if self.io_registers.boot_rom_enabled() && self.boot_rom.in_region(addr) {
             return self.boot_rom.read_byte(addr);
         } else if self.cartridge.in_region(addr) {
             return self.cartridge.read_byte(addr)
