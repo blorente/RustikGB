@@ -28,6 +28,7 @@ pub struct BUS {
     gpu: GPU,
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
+    pub screen: Screen,    
     io_registers: IORegs,     
 }
 
@@ -40,9 +41,7 @@ impl BUS {
             storage_ram: PLAIN_RAM::new(INTERNAL_RAM_START, INTERNAL_RAM_END),
             storage_zero_ram: PLAIN_RAM::new(ZERO_PAGE_RAM_START, ZERO_PAGE_RAM_END),
             io_registers: IORegs::new(),
-            
             screen: Screen::new(window),
-
         }
     }
 
