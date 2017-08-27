@@ -3,7 +3,8 @@ use hardware::memory::memory_region::MemoryRegion;
 use std::fmt::Display;
 use hardware::registers::Register;
 
-type Tile = [[Register<u8>; 2]; 8];
+pub type Tile = [[Register<u8>; 2]; 8];
+
 pub struct TileSet {
     tiles: [Tile; TILE_NUMBER]
 }
@@ -13,6 +14,13 @@ impl TileSet {
         TileSet {
             tiles: [[[Register::new(0); 2]; 8]; TILE_NUMBER]
         }
+    }
+
+    pub fn get_pixel(&self, tile: &Tile, x: u8, y: u8) -> u8 {
+        let hibit = if tile[y as usize][0].is_bit_set(x) {2} else {0} ;
+        let lobit = if tile[y as usize][1].is_bit_set(x) {2} else {0} ;
+        let color = hibit + lobit;
+        color
     }
 
     pub fn dump_tiles(&self) {
@@ -30,15 +38,13 @@ impl TileSet {
 
                 for line in 0..8 {
                     for pixel in 0..8 {
-                        let hibit = if tile[line][0].is_bit_set(pixel) {2} else {0} ;
-                        let lobit = if tile[line][1].is_bit_set(pixel) {1} else {0} ;
-                        let color = hibit + lobit;
+                        let color = self.get_pixel(&tile, line, pixel);
 
                         let r = PALETTE_PINKU[color as usize][0];
                         let g = PALETTE_PINKU[color as usize][1];
                         let b = PALETTE_PINKU[color as usize][2];
 
-                        img.put_pixel((tilex + pixel as usize) as u32, (tiley + line) as u32, Rgba { data: [r, g, b, 255]})
+                        img.put_pixel((tilex + pixel as usize) as u32, (tiley + line as usize) as u32, Rgba { data: [r, g, b, 255]})
                     }
                 }               
             }
