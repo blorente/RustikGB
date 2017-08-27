@@ -80,7 +80,7 @@ impl RegBank {
 }
 
 pub struct CPU {
-    bus: bus::BUS,
+    pub bus: bus::BUS,
     pub regs : RegBank,
     pub sp : Register<u16>,
     pub pc : Register<u16>,
@@ -117,7 +117,7 @@ impl CPU {
         }
     }
 
-    pub fn run(&mut self, screen: &mut Screen) {
+    pub fn run(&mut self) {
         let instr_set = instructions::InstructionSet::new();
         let mut debugger = debugger::Debugger::new();
         let mut cycles : u32 = 0;
@@ -140,11 +140,11 @@ impl CPU {
                 panic!("Unimplemented instruction!");
             } 
 
-            cycles += self.step(&instr_set, opcode, bitwise, screen);
+            cycles += self.step(&instr_set, opcode, bitwise);
         }
     }
 
-    fn step(&mut self, instr_set: &instructions::InstructionSet, opcode: u8, bitwise: bool, screen: &mut Screen) -> u32 {
+    fn step(&mut self, instr_set: &instructions::InstructionSet, opcode: u8, bitwise: bool) -> u32 {
             let step_cycles;
             if !bitwise {
                 step_cycles = instr_set.exec(self, opcode) * 4;
@@ -152,7 +152,7 @@ impl CPU {
                 step_cycles = instr_set.exec_bit(self, opcode) * 4;
             }            
 
-            self.bus.step(step_cycles, screen);
+            self.bus.step(step_cycles);
             step_cycles
     }
 

@@ -19,21 +19,20 @@ fn main() {
 
     let mut window = init_window();
 
-    let mut screen = hardware::video::screen::Screen::new(&mut window);
-    let bus = hardware::memory::bus::BUS::new(boot_buf, cartridge);
+    let bus = hardware::memory::bus::BUS::new(&mut window, boot_buf, cartridge);
     let mut processor : hardware::cpu::CPU = hardware::cpu::CPU::new(bus);
 
     while let Some(e) = window.next() {
         match e {
             Event::Render(_) => {
-                screen.update(&mut window, e);                
+                processor.bus.screen.update(&mut window, e);                
             }
             _ => {}
         }
 
         // Here we CPU.run_frame() or something
     }
-    processor.run(&mut screen);
+    processor.run();
 }
 
 
