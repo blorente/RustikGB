@@ -8,6 +8,7 @@ use piston_window::*;
 
 #[macro_use] extern crate text_io;
 extern crate piston_window;
+extern crate image;
 extern crate rand;
 
 fn main() {

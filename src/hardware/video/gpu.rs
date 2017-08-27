@@ -34,6 +34,13 @@ const WINDOW_X_ADDR                 : u16 = 0xFF4B;
 
 const CYCLES_PER_LINE               : u32 = 456;
 
+// Relevant bits
+// LCD Control Register
+const B_LCD_DISPLAY_ENABLED         : u8 = 7;
+
+// LCD Status Register
+const B_LYC_COINCIDENCE_INTERRUPT   : u8 = 6;
+
 pub struct GPU {
 
     vram: PLAIN_RAM,
@@ -81,6 +88,9 @@ impl GPU {
     }
 
     pub fn step(&mut self, cycles: u32, screen: &mut Screen) {
+        // TODO: Uncomment when more advanced with tetris, See if it bootstrap really switches it off
+        //screen.turn_on_off(self.lcd_control.is_bit_set(B_LCD_DISPLAY_ENABLED));
+
         self.elapsed_cycles += cycles;
         if self.elapsed_cycles >= CYCLES_PER_LINE {
 
@@ -88,6 +98,12 @@ impl GPU {
             self.ly_coord.w(line);
 
             self.elapsed_cycles -= CYCLES_PER_LINE;
+        }
+
+        // Check the value of LY with LYC register, and request interrupts if necessary
+        if self.ly_coord.r() == self.lyc_compare.r() {
+            self.lcd_status.set_bit(B_LYC_COINCIDENCE_INTERRUPT, true);
+            // TODO: Request a STAT interrupt
         }
 
         if self.ly_coord.r() > 144 {
