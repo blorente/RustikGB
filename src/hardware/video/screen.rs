@@ -34,6 +34,7 @@ impl Screen {
         else if self.green <= 0.0 {self.delta = 0.01;};
         self.green = self.green + self.delta;
 
+        // TODO: Really would like to not have to create a new texture every frame
         let texture = Texture::create(
             &mut window.factory,
             Format::Rgba8,
