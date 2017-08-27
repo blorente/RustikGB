@@ -3,7 +3,6 @@ use std::io::Read;
 use std::path::Path;
 
 mod hardware;
-use hardware::video::screen::SCREEN_DIMS;
 
 use piston_window::*;
 
