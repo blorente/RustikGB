@@ -2,7 +2,9 @@ use hardware::cartridge::Cartridge;
 use hardware::memory::ioregs::IORegs;
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::plain_ram::PLAIN_RAM;
-use hardware::gpu::GPU;
+use hardware::video::gpu::GPU;
+use hardware::video::screen::Screen;
+use piston_window::*;
 
 const BIOS_START                : u16 = 0x0000;
 const BIOS_END                  : u16 = 0x00FF;
@@ -30,7 +32,7 @@ pub struct BUS {
 }
 
 impl BUS {
-    pub fn new(boot_rom: Box<[u8]>, cartridge: Cartridge) -> Self {
+    pub fn new(window: &mut PistonWindow, boot_rom: Box<[u8]>, cartridge: Cartridge) -> Self {
         BUS {
             cartridge: cartridge,
             boot_rom: PLAIN_RAM::from_data(BIOS_START, BIOS_END, boot_rom),
@@ -38,11 +40,14 @@ impl BUS {
             storage_ram: PLAIN_RAM::new(INTERNAL_RAM_START, INTERNAL_RAM_END),
             storage_zero_ram: PLAIN_RAM::new(ZERO_PAGE_RAM_START, ZERO_PAGE_RAM_END),
             io_registers: IORegs::new(),
+            
+            screen: Screen::new(window),
+
         }
     }
 
     pub fn step(&mut self, cycles: u32) {
-        self.gpu.step(cycles);
+        self.gpu.step(cycles, &mut self.screen);
     }
 
     pub fn read_byte(&self, addr: u16) -> u8 {

@@ -3,6 +3,7 @@ use hardware::instructions;
 use hardware::memory::bus;
 use hardware::debugger;
 use hardware::registers::Register;
+use hardware::video::screen::Screen;
 
 pub struct RegBank {
     pub a : Register<u8>,
@@ -79,7 +80,7 @@ impl RegBank {
 }
 
 pub struct CPU {
-    bus: bus::BUS,
+    pub bus: bus::BUS,
     pub regs : RegBank,
     pub sp : Register<u16>,
     pub pc : Register<u16>,
@@ -136,8 +137,7 @@ impl CPU {
                 panic!("Unimplemented instruction!");
             } 
 
-            cycles += self.step(&instr_set, opcode, bitwise);            
-            
+            cycles += self.step(&instr_set, opcode, bitwise);
         }
     }
 
