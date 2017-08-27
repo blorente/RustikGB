@@ -3,14 +3,6 @@ use hardware::memory::memory_region::MemoryRegion;
 use std::fmt::Display;
 use hardware::registers::Register;
 
-
-const PALETTE_PUKE_GREEN: [[u8; 4]; 4] = [
-    [157, 188, 7, 255],
-    [122, 156, 107, 255],
-    [ 53,  99, 56, 255],
-    [ 13,  58, 8, 255],
-];
-
 type Tile = [[Register<u8>; 2]; 8];
 pub struct TileSet {
     tiles: [Tile; TILE_NUMBER]
@@ -42,9 +34,9 @@ impl TileSet {
                         let lobit = if tile[line][1].is_bit_set(pixel) {1} else {0} ;
                         let color = hibit + lobit;
 
-                        let r = PALETTE_PUKE_GREEN[color as usize][0];
-                        let g = PALETTE_PUKE_GREEN[color as usize][1];
-                        let b = PALETTE_PUKE_GREEN[color as usize][2];
+                        let r = PALETTE_PINKU[color as usize][0];
+                        let g = PALETTE_PINKU[color as usize][1];
+                        let b = PALETTE_PINKU[color as usize][2];
 
                         img.put_pixel((tilex + pixel as usize) as u32, (tiley + line) as u32, Rgba { data: [r, g, b, 255]})
                     }

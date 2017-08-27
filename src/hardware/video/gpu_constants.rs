@@ -55,3 +55,11 @@ pub const B_BG_TILE_MAP_SELECT          : u8 = 3;
 
 // LCD Status Register
 pub const B_LYC_COINCIDENCE_INTERRUPT   : u8 = 6;
+
+// Palettes
+pub const PALETTE_PINKU: [[u8; 4]; 4] = [
+    [238, 66, 7, 244],
+    [179, 47, 183, 255],
+    [112, 28, 56, 114],
+    [ 45,  11, 45, 255],
+];
