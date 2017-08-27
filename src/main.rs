@@ -11,6 +11,9 @@ extern crate piston_window;
 extern crate rand;
 
 fn main() {
+    let mut debugger = hardware::debugger::Debugger::new();
+    let instructions = hardware::instructions::InstructionSet::new();
+
     let boot_buf = read_bin("assets/BIOS.gb");
     let rom_buf = read_bin("assets/Tetris (World).gb");
     let cartridge = hardware::cartridge::Cartridge::new(&rom_buf);    
@@ -24,15 +27,14 @@ fn main() {
     while let Some(e) = window.next() {
         match e {
             Event::Render(_) => {
+                // TODO: Move out of the render event       
+                processor.run_frame(&mut debugger, &instructions);
                 processor.bus.screen.update(&mut window, e);                
             }
             _ => {}
         }
 
-        // Here we CPU.run_frame() or something
-        
     }
-    processor.run();
 }
 
 

@@ -4,6 +4,10 @@ use hardware::memory::bus;
 use hardware::debugger;
 use hardware::registers::Register;
 use hardware::video::screen::Screen;
+use hardware::debugger::Debugger;
+use hardware::instructions::InstructionSet;
+
+const CYCLES_PER_FRAME: u32 = 70244;
 
 pub struct RegBank {
     pub a : Register<u8>,
@@ -84,6 +88,8 @@ pub struct CPU {
     pub regs : RegBank,
     pub sp : Register<u16>,
     pub pc : Register<u16>,
+
+    cycles: u32
 }
 
 impl fmt::Display for CPU {
@@ -114,14 +120,12 @@ impl CPU {
             regs : Default::default(),
             sp : Register::new(0x0000),            
             pc : Register::new(0x0000),
+            cycles: 0
         }
     }
 
-    pub fn run(&mut self) {
-        let instr_set = instructions::InstructionSet::new();
-        let mut debugger = debugger::Debugger::new();
-        let mut cycles : u32 = 0;
-        loop {
+    pub fn run_frame(&mut self, debugger: &mut Debugger, instr_set: &InstructionSet) {
+        while self.cycles < CYCLES_PER_FRAME {
             let mut bitwise = false;
             let old_pc = self.pc.r();
             let mut opcode = self.fetch_byte_immediate();
@@ -137,8 +141,10 @@ impl CPU {
                 panic!("Unimplemented instruction!");
             } 
 
-            cycles += self.step(&instr_set, opcode, bitwise);
+            self.cycles += self.step(&instr_set, opcode, bitwise);
         }
+
+        self.cycles -= CYCLES_PER_FRAME;
     }
 
     fn step(&mut self, instr_set: &instructions::InstructionSet, opcode: u8, bitwise: bool) -> u32 {

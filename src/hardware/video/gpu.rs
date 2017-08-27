@@ -3,6 +3,8 @@ use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::memory_region::BitAccess;
 use hardware::registers::Register;
 use hardware::video::screen::Screen;
+use hardware::video::screen::SCREEN_WIDTH;
+use hardware::video::screen::SCREEN_HEIGHT;
 
 use rand;
 
@@ -89,7 +91,10 @@ impl GPU {
         }
 
         if self.ly_coord.r() > 144 {
-            screen.set_pixel(rand::random::<u8>() % 160, rand::random::<u8>() % 140, 224, 51, 224);
+            screen.set_pixel(
+                rand::random::<u8>() % SCREEN_WIDTH as u8, 
+                rand::random::<u8>() % SCREEN_HEIGHT as u8, 
+                224, 51, 224);
         }
     }
 }
