@@ -2,8 +2,8 @@ use piston_window::*;
 use texture::*;
 use image;
 
-pub const SCREEN_WIDTH: usize = 144;
-pub const SCREEN_HEIGHT: usize = 160;
+pub const SCREEN_WIDTH: usize = 160;
+pub const SCREEN_HEIGHT: usize = 144;
 pub const SCREEN_DIMS: [u32; 2] = [SCREEN_WIDTH as u32, SCREEN_HEIGHT as u32];
 const FRAMEBUFFER_SIZE: usize = (SCREEN_WIDTH * SCREEN_HEIGHT * 4) as usize;
 const SCREEN_SCALE : f64 = 2.0;
@@ -57,12 +57,12 @@ impl Screen {
         
     }
 
-    pub fn set_pixel(&mut self, x: u8, y: u8, rgb: [u8; 3]) {        
+    pub fn set_pixel(&mut self, x: u8, y: u8, rgba: [u8; 4]) {        
         let first_index = 4 * (x as usize + (y as usize * SCREEN_WIDTH));
-        self.framebuffer[first_index]       = rgb[0];
-        self.framebuffer[first_index + 1]   = rgb[1];
-        self.framebuffer[first_index + 2]   = rgb[2];
-        self.framebuffer[first_index + 3]   = 255;
+        self.framebuffer[first_index]       = rgba[0];
+        self.framebuffer[first_index + 1]   = rgba[1];
+        self.framebuffer[first_index + 2]   = rgba[2];
+        self.framebuffer[first_index + 3]   = rgba[3];
     }
 
     pub fn turn_on_off(&mut self, is_on: bool) {

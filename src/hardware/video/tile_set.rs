@@ -6,7 +6,7 @@ use hardware::registers::Register;
 pub type Tile = [[Register<u8>; 2]; 8];
 
 pub struct TileSet {
-    tiles: [Tile; TILE_NUMBER]
+    pub tiles: [Tile; TILE_NUMBER]
 }
 
 impl TileSet {
@@ -23,6 +23,10 @@ impl TileSet {
         color
     }
 
+    pub fn get_tile(&self, addr: u16) -> Tile {
+        self.tiles[((addr - self.start()) / 16) as usize]
+    }
+
     pub fn dump_tiles(&self) {
         use image::{ImageBuffer, RgbaImage, Rgba};
 
@@ -34,7 +38,6 @@ impl TileSet {
         for tiley in 0..VERTICAL_TILES as usize {
             for tilex in 0..HORIZONTAL_TILES as usize {                
                 let tile = self.tiles[(tiley * HORIZONTAL_TILES as usize) + tilex];
-                println!("Printing tile ({}, {}): {:?}", tilex, tiley, tile);
 
                 for line in 0..8 {
                     for pixel in 0..8 {

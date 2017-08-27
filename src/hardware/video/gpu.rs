@@ -8,6 +8,7 @@ use hardware::video::screen::SCREEN_HEIGHT;
 use hardware::hex_print;
 use hardware::video::gpu_constants::*;
 use hardware::video::tile_set::TileSet;
+use hardware::video::tile_set::Tile;
 
 use std::fmt;
 use rand;
@@ -35,7 +36,7 @@ pub struct GPU {
     window_y:       Register<u8>,
     window_x:       Register<u8>,
 
-    debug_color:    [u8; 3]
+    debug_color:    [u8; 4]
 }
 
 #[derive(PartialEq, Debug)]
@@ -76,7 +77,7 @@ impl GPU {
             window_y:       Register::new(0x00),
             window_x:       Register::new(0x00),
 
-            debug_color:    [0; 3]
+            debug_color:    [0, 0, 0, 255]
         }
     }
 
@@ -85,7 +86,7 @@ impl GPU {
         //screen.turn_on_off(self.lcd_control.is_bit_set(B_LCD_DISPLAY_ENABLED));
         
         //println!("Mode: {} Cycles: {}", self.lcdc_mode, self.mode_cycles);
-        self.update_mode(cycles);  
+        self.update_mode(cycles, screen);  
 
         match self.lcdc_mode {
             LCDCMode::VBLANK => {
@@ -93,7 +94,8 @@ impl GPU {
                     self.debug_color = [
                         rand::random::<u8>(),
                         rand::random::<u8>(),
-                        rand::random::<u8>()
+                        rand::random::<u8>(),
+                        255
                     ]
                 }
             }
@@ -110,12 +112,12 @@ impl GPU {
         }
     }    
 
-    fn update_mode(&mut self, cycles: u32) {
+    fn update_mode(&mut self, cycles: u32, screen: &mut Screen) {
         self.mode_cycles += cycles;
         match self.lcdc_mode {
             LCDCMode::HBLANK => {                
                 if self.need_change_mode(HBLANK_CYCLES) {
-                    self.render_scan_line();
+                    self.render_scan_line(screen);
                     self.increase_line();
                     if self.ly_coord.r() == VBLANK_START_LINE {
                         self.change_mode_and_interrupt(LCDCMode::VBLANK);
@@ -172,12 +174,11 @@ impl GPU {
         // TODO: Interrupts go here
     }
 
-    fn render_scan_line(&mut self) {
-        self.render_background_line();
+    fn render_scan_line(&mut self, screen: &mut Screen) {
+        self.render_background_line(screen);
     }
 
-    fn render_background_line(&mut self) {
-        /*
+    fn render_background_line(&mut self, screen: &mut Screen) { 
         let background_tile_map_start = 
             if self.lcd_control.is_bit_set(B_BG_TILE_MAP_SELECT) {
                 TILE_MAP_1_START
@@ -194,38 +195,28 @@ impl GPU {
                 BG_WIN_TILE_DATA_0_START
             };
 
-        let first_tile_index_y = (((self.ly_coord.r() + self.scroll_y.r()) / 8) % 32) as u16;
-        let first_tile_index_x = ((self.scroll_x.r() / 8) % 32) as u16;
-        let first_tile_offset = ((self.ly_coord.r() + self.scroll_y.r()) % 8) as u16;
+        let tile_y = (((self.ly_coord.r() + self.scroll_y.r()) / 8) % 32) as u16;
+        let tile_offset_y = ((self.ly_coord.r() + self.scroll_y.r()) % 8) as u16;
 
-         // Get tile indices of each tile in the current line
-        let mut tile_indices : [u8; 20] = [0; 20];
-        for x in 0..20u16 {
-            tile_indices[x as usize] = self.vram.read_byte(background_tile_map_start + (first_tile_index_y * 32) + first_tile_index_x + x);
-        }
+        for x in 0..SCREEN_HEIGHT {            
+            let tile_offset_x = ((self.scroll_x.r() + x as u8) % 8) as u16;
+            let tile_x = ((self.scroll_x.r().wrapping_add(x as u8) / 8) % 32) as u16;
+            let tile_index = self.tile_maps.read_byte(background_tile_map_start + (tile_y * 32) + tile_x);
+            let tile_address =              
+                (if signed_tile_maps {tile_index as u16} 
+                else {(tile_index as i8 as i16 + 128) as u16});
+            let tile = self.tile_data.tiles[tile_address as usize];
+            let y = self.ly_coord.r();
 
-        let mut tile_data : [u8; 40] = [0; 40];
-        for x in 0..20u16 {
-            let tile_index = tile_indices[x as usize];
-            let tru_addr: u16 = 
-                if signed_tile_maps {
-                    (background_tile_data_start as u32 as i32 + (tile_index as i8 as i32)) as u16
-                } else {
-                    background_tile_data_start + (tile_index as u16)
-                };
-            tile_data[(x * 2) as usize] = self.vram.read_byte(tru_addr);
-            tile_data[((x * 2) + 1) as usize] = self.vram.read_byte(tru_addr + 1);
+            let color = PALETTE_PINKU[self.tile_data.get_pixel(&tile, tile_offset_x as u8, tile_offset_y as u8) as usize];
+            
+            //println!("Get pixel ({}, {}). Color: {:?} Tile: {:4X}", tile_offset_x, tile_offset_y, color, tile_index);
+            screen.set_pixel(x as u8, y, color);
         }
 
         //println!("Tile data for line {} with offset {}", self.ly_coord.r(), first_tile_offset);
         //hex_print("Tile indices", &tile_indices, 10);
         //hex_print("Tile data", &tile_data, 10);
-
-        for pixel in 0..SCREEN_HEIGHT {
-            let index = (pixel / 8);
-            let offset = pixel % 8;
-        }  
-        */      
     }
 }
 
