@@ -2,7 +2,7 @@ use hardware::cartridge::Cartridge;
 use hardware::memory::ioregs::IORegs;
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::plain_ram::PLAIN_RAM;
-use hardware::gpu::GPU;
+use hardware::video::gpu::GPU;
 
 const BIOS_START                : u16 = 0x0000;
 const BIOS_END                  : u16 = 0x00FF;
