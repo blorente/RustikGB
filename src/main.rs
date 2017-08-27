@@ -19,23 +19,21 @@ fn main() {
 
     let mut window = init_window();
 
+    let mut screen = hardware::video::screen::Screen::new(&mut window);
     let bus = hardware::memory::bus::BUS::new(boot_buf, cartridge);
     let mut processor : hardware::cpu::CPU = hardware::cpu::CPU::new(bus);
-    let mut screen = hardware::video::screen::Screen::new(&mut window);
 
     while let Some(e) = window.next() {
         match e {
             Event::Render(_) => {
-                screen.update(&mut window, e);
-
-                screen.set_pixel(rand::random::<u8>() % 160, rand::random::<u8>() % 140, 224, 51, 224);
+                screen.update(&mut window, e);                
             }
             _ => {}
         }
 
         // Here we CPU.run_frame() or something
     }
-    processor.run();
+    processor.run(&mut screen);
 }
 
 

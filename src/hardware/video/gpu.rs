@@ -2,6 +2,9 @@ use hardware::memory::plain_ram::PLAIN_RAM;
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::memory_region::BitAccess;
 use hardware::registers::Register;
+use hardware::video::screen::Screen;
+
+use rand;
 
 const SPRITE_OAM_START              : u16 = 0xFE00;
 const SPRITE_OAM_END                : u16 = 0xFE9F;
@@ -30,6 +33,7 @@ const WINDOW_X_ADDR                 : u16 = 0xFF4B;
 const CYCLES_PER_LINE               : u32 = 456;
 
 pub struct GPU {
+
     vram: PLAIN_RAM,
     sprite_oam: PLAIN_RAM,
 
@@ -53,6 +57,7 @@ pub struct GPU {
 impl GPU {
     pub fn new() -> Self {
         GPU {
+
             vram: PLAIN_RAM::new(VRAM_START, VRAM_END),
             sprite_oam: PLAIN_RAM::new(SPRITE_OAM_START, SPRITE_OAM_END),
 
@@ -73,7 +78,7 @@ impl GPU {
         }
     }
 
-    pub fn step(&mut self, cycles: u32) {
+    pub fn step(&mut self, cycles: u32, screen: &mut Screen) {
         self.elapsed_cycles += cycles;
         if self.elapsed_cycles >= CYCLES_PER_LINE {
 
@@ -81,6 +86,10 @@ impl GPU {
             self.ly_coord.w(line);
 
             self.elapsed_cycles -= CYCLES_PER_LINE;
+        }
+
+        if self.ly_coord.r() > 144 {
+            screen.set_pixel(rand::random::<u8>() % 160, rand::random::<u8>() % 140, 224, 51, 224);
         }
     }
 }

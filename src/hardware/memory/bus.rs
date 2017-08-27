@@ -3,6 +3,7 @@ use hardware::memory::ioregs::IORegs;
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::plain_ram::PLAIN_RAM;
 use hardware::video::gpu::GPU;
+use hardware::video::screen::Screen;
 
 const BIOS_START                : u16 = 0x0000;
 const BIOS_END                  : u16 = 0x00FF;
@@ -45,8 +46,8 @@ impl BUS {
         }
     }
 
-    pub fn step(&mut self, cycles: u32) {
-        self.gpu.step(cycles);
+    pub fn step(&mut self, cycles: u32, screen: &mut Screen) {
+        self.gpu.step(cycles, screen);
     }
 
     pub fn read_byte(&self, addr: u16) -> u8 {

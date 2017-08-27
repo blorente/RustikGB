@@ -3,6 +3,7 @@ use hardware::instructions;
 use hardware::memory::bus;
 use hardware::debugger;
 use hardware::registers::Register;
+use hardware::video::screen::Screen;
 
 pub struct RegBank {
     pub a : Register<u8>,
@@ -116,7 +117,7 @@ impl CPU {
         }
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self, screen: &mut Screen) {
         let instr_set = instructions::InstructionSet::new();
         let mut debugger = debugger::Debugger::new();
         let mut cycles : u32 = 0;
@@ -139,12 +140,11 @@ impl CPU {
                 panic!("Unimplemented instruction!");
             } 
 
-            cycles += self.step(&instr_set, opcode, bitwise);            
-            
+            cycles += self.step(&instr_set, opcode, bitwise, screen);
         }
     }
 
-    fn step(&mut self, instr_set: &instructions::InstructionSet, opcode: u8, bitwise: bool) -> u32 {
+    fn step(&mut self, instr_set: &instructions::InstructionSet, opcode: u8, bitwise: bool, screen: &mut Screen) -> u32 {
             let step_cycles;
             if !bitwise {
                 step_cycles = instr_set.exec(self, opcode) * 4;
@@ -152,7 +152,7 @@ impl CPU {
                 step_cycles = instr_set.exec_bit(self, opcode) * 4;
             }            
 
-            self.bus.step(step_cycles);
+            self.bus.step(step_cycles, screen);
             step_cycles
     }
 
