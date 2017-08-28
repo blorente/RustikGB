@@ -25,6 +25,10 @@ impl Debugger {
             activated: DEBUG_ACTIVATED,
         }
     }
+    
+    pub fn enter_debug_mode(&mut self) {
+        self.state = DebuggerState::STEP;
+    }
 
     pub fn stop_if_needed(&mut self, pc: u16, cpu: &CPU, instruction_set: &InstructionSet) {
         if self.activated {
@@ -117,6 +121,6 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![
-       // 0x2D3
+      // 0x2817
     ]
 }

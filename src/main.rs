@@ -26,16 +26,18 @@ fn main() {
     let mut processor : hardware::cpu::CPU = hardware::cpu::CPU::new(bus);
 
     while let Some(e) = window.next() {
-        match e {
-            Event::Render(_) => {
-                // TODO: Move out of the render event       
-                processor.run_frame(&mut debugger, &instructions);
-                processor.bus.screen.update(&mut window, e);
+        if let Some(Button::Keyboard(key)) = e.press_args() {
+            if key == Key::F10 {
+                debugger.enter_debug_mode();
             }
-            _ => {}
+        }
+
+        if let Some(args) = e.render_args() {
+            // TODO: Move out of the render event       
+            processor.run_frame(&mut debugger, &instructions);
+            processor.bus.screen.update(&mut window, e);
         }
     }
-
 }
 
 
