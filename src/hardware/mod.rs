@@ -1,3 +1,14 @@
+macro_rules! quick_fix {
+    ($exec: block, $panic: expr) => {
+        const QUICK_FIXES_ACTIVE : bool = true;
+        if (QUICK_FIXES_ACTIVE) {
+            $exec
+        } else {
+            panic!($panic);
+        }
+    };
+}
+
 pub mod cpu;
 pub mod cartridge;
 pub mod instructions;

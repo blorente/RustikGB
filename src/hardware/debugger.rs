@@ -117,5 +117,6 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![
+       // 0x2D3
     ]
 }

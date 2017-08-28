@@ -123,7 +123,10 @@ impl MemoryRegion for Cartridge {
         self.data[addr as usize]
     }
     fn write_byte(&mut self, addr: u16, val: u8) {
-        panic!("Probably shouldn't be writing to the cartridge ROM");
+        quick_fix!({
+            println!("Writing byte {:2X} to cartridge addres {:4X}", val, addr);
+        }, 
+        "Probably shouldn't be writing to the cartridge ROM");
     }
 
     fn in_region(&self, addr: u16) -> bool {

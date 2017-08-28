@@ -18,6 +18,9 @@ const INTERNAL_RAM_END          : u16 = 0xDFFF;
 const INTERNAL_RAM_ECHO_START   : u16 = 0xE000;
 const INTERNAL_RAM_ECHO_END     : u16 = 0xFDFF;
 
+const UNUSED_MEMORY_LOW_START   : u16 = 0xFEA0;
+const UNUSED_MEMORY_LOW_END     : u16 = 0xFEFF;
+
 const ZERO_PAGE_RAM_START       : u16 = 0xFF80;
 const ZERO_PAGE_RAM_END         : u16 = 0xFFFF;
 
@@ -28,6 +31,9 @@ pub struct BUS {
     pub gpu: GPU,
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
+    unused_memory: UnusedMemory,
+
+
     pub screen: Screen,    
     io_registers: IORegs,     
 }
@@ -40,6 +46,10 @@ impl BUS {
             gpu: GPU::new(),
             storage_ram: PLAIN_RAM::new(INTERNAL_RAM_START, INTERNAL_RAM_END),
             storage_zero_ram: PLAIN_RAM::new(ZERO_PAGE_RAM_START, ZERO_PAGE_RAM_END),
+            unused_memory: UnusedMemory::new(vec![
+                (UNUSED_MEMORY_LOW_START, UNUSED_MEMORY_LOW_END)
+                ]),
+
             io_registers: IORegs::new(),
             screen: Screen::new(window),
         }
@@ -62,12 +72,16 @@ impl BUS {
             return self.storage_zero_ram.read_byte(addr);
         } else if self.io_registers.in_region(addr) {
             return self.io_registers.read_byte(addr);
+        } else if self.unused_memory.in_region(addr) {
+            return self.unused_memory.read_byte(addr)
         }
         panic!("Trying to read byte from unrecognized address: 0x{:X}", addr);
     }
 
     pub fn write_byte(&mut self, addr: u16, val: u8) {   
-        if self.gpu.in_region(addr) {
+        if self.cartridge.in_region(addr) {
+            return self.cartridge.write_byte(addr, val);
+        } else if self.gpu.in_region(addr) {
             self.gpu.write_byte(addr, val);
         } else if self.storage_ram.in_region(addr) | (addr >= INTERNAL_RAM_ECHO_START && addr <= INTERNAL_RAM_ECHO_END) {
             self.storage_ram.write_byte(addr, val);
@@ -75,7 +89,9 @@ impl BUS {
             self.storage_zero_ram.write_byte(addr, val);
         } else if self.io_registers.in_region(addr) {
             self.io_registers.write_byte(addr, val);
-        } else {
+        } else if self.unused_memory.in_region(addr) {
+            return self.unused_memory.write_byte(addr, val)
+        } else {            
             panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
         }
     }
@@ -91,5 +107,43 @@ impl BUS {
         let second = (val & 0x00FF) as u8;
         self.write_byte(addr, first);
         self.write_byte(addr + 1, second);
+    }
+}
+
+struct UnusedMemory {
+    unused_regions: Vec<(u16, u16)>
+}
+
+impl UnusedMemory {
+    fn new(regions: Vec<(u16, u16)>) -> Self {
+        UnusedMemory {
+            unused_regions: regions
+        }
+    }
+}
+
+impl MemoryRegion for UnusedMemory {
+    fn read_byte(&self, addr: u16) -> u8 {
+        0xFF
+    }
+    fn write_byte(&mut self, addr: u16, val: u8){
+        // Writing to unused memory has no effect
+    }
+
+    fn in_region(&self, addr: u16) -> bool{
+        let mut in_region = false;
+        for &(start, end) in &self.unused_regions {
+            if addr >= start && addr <= end {
+                return true;
+            }
+        }
+        false
+    }
+
+    fn start(&self) -> u16{
+        panic!("Unused Memory doesn't have just one start")
+    }
+    fn end(&self) -> u16{
+        panic!("Unused Memory doesn't have just one end")
     }
 }
