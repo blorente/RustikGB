@@ -85,7 +85,11 @@ impl Debugger {
                 }
                 "t" => {
                     cpu.bus.gpu.tile_data.dump_tiles();
-                }          
+                }   
+                "b" => {
+                    let addr : u16 = u16::from_str_radix(&command[4..8], 16).unwrap();
+                    self.breakpoints.insert(addr);
+                }       
                 _ => {}
             }
 
@@ -103,7 +107,7 @@ impl Debugger {
         for i in start..end {
             values[(i - start) as usize] = cpu.read_byte(i);
         }
-        hex_print("Debugger Dump", &values, 20);
+        hex_print("Debugger Dump", &values, 16);
     }
 }
 
@@ -120,7 +124,12 @@ macro_rules! hash {
 }
 
 fn create_breakpoints() -> HashSet<u16> {
-    hash![
-      // 0x2817
+    hash![      
+        //0x283F
     ]
 }
+
+// IMPORTANT ADDRESSES IN TETRIS
+//0x27e9: Procedure that loads 2F into the tilemaps
+//0x283F: Procedure that loads the tile map!!! (CALLED FROM 0x03EF)
+//0x0405: First refresh of the LCD with good graphics

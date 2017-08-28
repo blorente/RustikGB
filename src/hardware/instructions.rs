@@ -80,7 +80,7 @@ fn add_carry(other : u8, cpu : &mut CPU) {
     let carry = if cpu.is_flag_set(CPUFlags::C) {1} else {0};
     let a : u8 = cpu.regs.a.r();
     let res : u16 = (a as u16).wrapping_add(other as u16).wrapping_add(carry as u16);
-    let res_trunc : u8 = (res & 0xF) as u8;
+    let res_trunc : u8 = (res & 0xFF) as u8;
     cpu.set_flag(CPUFlags::Z, res_trunc == 0);
     cpu.set_flag(CPUFlags::N, false);
     cpu.set_flag(CPUFlags::H, (a & 0xF) + (other & 0xF) + carry > 0xF);
@@ -666,7 +666,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 4})],
         [0xFB, inst!("EI", |cpu, op|{cpu.enable_interrupts_delayed(); 1})],
         [0xFE, inst!("CP n", |cpu, op|{compare_with_a(cpu.fetch_byte_immediate(), cpu); 2})],
-        [0xFF, inst!("RST 0x038", |cpu, op|{reset(op, cpu); 8})]
+        [0xFF, inst!("RST 0x38", |cpu, op|{reset(op, cpu); 8})]
     )
 }
 

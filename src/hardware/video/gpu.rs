@@ -82,9 +82,9 @@ impl GPU {
     }
 
     pub fn step(&mut self, cycles: u32, screen: &mut Screen) {
-        // TODO: Uncomment when more advanced with tetris, See if it bootstrap really switches it off
-        //screen.turn_on_off(self.lcd_control.is_bit_set(B_LCD_DISPLAY_ENABLED));
-        
+        // If the display is not enabled, don't render
+        //if !self.lcd_control.is_bit_set(B_LCD_DISPLAY_ENABLED) {return}
+
         //println!("Mode: {} Cycles: {}", self.lcdc_mode, self.mode_cycles);
         self.update_mode(cycles, screen);  
     }    
@@ -152,7 +152,7 @@ impl GPU {
         // TODO: Interrupts go here
     }
 
-    fn render_scan_line(&mut self, screen: &mut Screen) {
+    fn render_scan_line(&mut self, screen: &mut Screen) {  
         self.render_background_line(screen);
     }
 
@@ -163,26 +163,23 @@ impl GPU {
             } else {
                 TILE_MAP_0_START
             };
-        let signed_tile_maps: bool;
-        let background_tile_data_start = 
-            if self.lcd_control.is_bit_set(B_BG_WIN_TILE_DATA_SELECT) {
-                signed_tile_maps = false;
-                BG_WIN_TILE_DATA_1_START
-            } else {
-                signed_tile_maps = true;
-                BG_WIN_TILE_DATA_0_START
-            };
+        let signed_tile_maps: bool;            
 
         let tile_y = (((self.ly_coord.r() + self.scroll_y.r()) / 8) % 32) as u16;
         let tile_offset_y = ((self.ly_coord.r() + self.scroll_y.r()) % 8) as u16;
+
+        let signed_tile_maps = self.lcd_control.is_bit_set(B_BG_WIN_TILE_DATA_SELECT);        
 
         for x in 0..SCREEN_WIDTH {            
             let tile_offset_x = ((self.scroll_x.r() + x as u8) % 8) as u16;
             let tile_x = ((self.scroll_x.r().wrapping_add(x as u8) / 8) % 32) as u16;
             let tile_index = self.tile_maps.read_byte(background_tile_map_start + (tile_y * 32) + tile_x);
             let tile_address =  
-                if !signed_tile_maps {tile_index as u16} 
-                else {(tile_index as i8 as i16 + 128) as u16};
+                if signed_tile_maps {
+                    (tile_index.wrapping_sub(0x80)) as u16
+                } else {
+                    (tile_index as u16)              
+                };
             let tile = self.tile_data.tiles[tile_address as usize];
             let y = self.ly_coord.r();
 
