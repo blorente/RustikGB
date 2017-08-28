@@ -252,6 +252,13 @@ fn call_cond(cpu: &mut CPU, cond: JumpImmCond) {
     }
 }
 
+fn reset(opcode: u8, cpu: &mut CPU) {
+    let cur_addr = cpu.pc.r();
+    cpu.push_word(cur_addr);
+    let addr = (opcode - 0xC7) as u16;
+    cpu.pc.w(addr);
+}
+
 fn ldh(cpu: &mut CPU, offset: u8, store_into_a: bool) {
     let addr : u16 = 0xFF00u16.wrapping_add(offset as u16);
     match store_into_a {
@@ -302,6 +309,15 @@ fn rotate_left_ind(addr: u16, cpu: &mut CPU) {
     let original = cpu.read_byte(addr);
     let rotated = rotate_left_carry(original, cpu);
     cpu.write_byte(addr, rotated);
+}
+
+macro_rules! complement {
+    ($target_reg: expr, $cpu: expr) => {
+        let val = $target_reg.r();
+        $target_reg.w(val ^ 0xFF);
+        $cpu.set_flag(CPUFlags::N, true);
+        $cpu.set_flag(CPUFlags::H, true);
+    };
 }
 
 macro_rules! pop_into {
@@ -401,6 +417,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x2C, inst!("INC L", |cpu, op| {inc!(cpu.regs.l, cpu, false); 1})], 
         [0x2D, inst!("DEC L", |cpu, op|{dec!(cpu.regs.l, cpu, false); 1})],
         [0x2E, inst!("LD L,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.l, cpu); 2})],
+        [0x2F, inst!("CPL A", |cpu, op|{complement!(cpu.regs.a, cpu); 1})],
 
         [0x30, inst!("JR NC,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NC, JumpImmMode::IntOffset){3} else {2}})],  
         [0x31, inst!("LD SP,nn", |cpu, op|{load_word_imm_u16!(cpu.sp, cpu); 3})],
@@ -526,24 +543,30 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xC4, inst!("CALL NZ,nn", |cpu, op|{call_cond(cpu, JumpImmCond::NZ);3})],
         [0xC5, inst!("PUSH BC", |cpu, op|{let val = cpu.regs.bc();cpu.push_word(val); 4})],
         [0xC6, inst!("ADD A,#", |cpu, op|{add_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
+        [0xC7, inst!("RST 0x00", |cpu, op|{reset(op, cpu); 8})],
         [0xC9, inst!("RET", |cpu, op|{let target_addr = cpu.pop_word(); jump(target_addr, cpu); 2})],
         [0xCC, inst!("CALL Z,nn", |cpu, op|{call_cond(cpu, JumpImmCond::Z);3})],
         [0xCD, inst!("CALL nn", |cpu, op|{call_cond(cpu, JumpImmCond::None); 3})],
+        [0xCF, inst!("RST 0x08", |cpu, op|{reset(op, cpu); 8})],
         
         [0xD1, inst!("POP DE", |cpu, op|{pop_into!(cpu.regs.d, cpu.regs.e, cpu);3})],
         [0xD4, inst!("CALL C,nn", |cpu, op|{call_cond(cpu, JumpImmCond::C);3})],
         [0xD5, inst!("PUSH DE", |cpu, op|{let val = cpu.regs.de();cpu.push_word(val); 4})],
         [0xD6, inst!("SUB A,#", |cpu, op|{sub_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
+        [0xD7, inst!("RST 0x10", |cpu, op|{reset(op, cpu); 8})],
         
         [0xDC, inst!("CALL NC,nn", |cpu, op|{call_cond(cpu, JumpImmCond::NC);3})],
+        [0xDF, inst!("RST 0x18", |cpu, op|{reset(op, cpu); 8})],
 
         [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{let off = cpu.fetch_byte_immediate();ldh(cpu, off, false);3})],
         [0xE1, inst!("POP HL", |cpu, op|{pop_into!(cpu.regs.h, cpu.regs.l, cpu);3})],
         [0xE2, inst!("LD (0xFF00+C),A", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, false);3})],
         [0xE5, inst!("PUSH HL", |cpu, op|{let val = cpu.regs.hl();cpu.push_word(val); 4})],
         [0xE6, inst!("AND A,#", |cpu, op|{and(cpu.fetch_byte_immediate(), cpu); 2})],
+        [0xE7, inst!("RST 0x20", |cpu, op|{reset(op, cpu); 8})],
         [0xE9, inst!("JP (HL)", |cpu, op|{jump(cpu.regs.hl(), cpu); 1})],
         [0xEA, inst!("LD (nn),A", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_from_a_ind(addr, cpu); 4})],
+        [0xEF, inst!("RST 0x28", |cpu, op|{reset(op, cpu); 8})],
         
         [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{let off = cpu.fetch_byte_immediate(); ldh(cpu, off, true); 3})],
         [0xF1, inst!("POP AF", |cpu, op|{pop_into!(cpu.regs.a, cpu.regs.f, cpu);3})],
@@ -551,9 +574,11 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts_delayed(); 1})],
         [0xF5, inst!("PUSH AF", |cpu, op|{let val = cpu.regs.af();cpu.push_word(val); 4})],
         [0xF6, inst!("OR A,#", |cpu, op|{or(cpu.fetch_byte_immediate(), cpu); 2})],
+        [0xF7, inst!("RST 0x30", |cpu, op|{reset(op, cpu); 8})],
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 4})],
-        [0xFb, inst!("EI", |cpu, op|{cpu.enable_interrupts_delayed(); 1})],
-        [0xFE, inst!("CP n", |cpu, op|{compare_with_a(cpu.fetch_byte_immediate(), cpu); 2})]     
+        [0xFB, inst!("EI", |cpu, op|{cpu.enable_interrupts_delayed(); 1})],
+        [0xFE, inst!("CP n", |cpu, op|{compare_with_a(cpu.fetch_byte_immediate(), cpu); 2})],
+        [0xFF, inst!("RST 0x038", |cpu, op|{reset(op, cpu); 8})]
     )
 }
 
@@ -576,6 +601,29 @@ fn test_bit(opcode: u8, cpu: &mut CPU) {
     cpu.set_flag(CPUFlags::H, true);    
 }
 
+fn perform_swap(val: u8) -> u8 {
+    ((val & 0xF0) >> 4) + ((val & 0xF) << 4)
+}
+
+macro_rules! swap_halves {
+    ($target_reg: expr, $cpu: expr) => {
+        let val = $target_reg.r();
+        let swapped = perform_swap(val);
+        if perform_swap(swapped) != val {panic!("Swap halves is bugged!")}
+        $target_reg.w(swapped);
+        $cpu.set_flag(CPUFlags::Z, swapped == 0);
+    };
+}
+
+fn swap_halves_ind(addr: u16, cpu: &mut CPU) {
+    let val = cpu.read_byte(addr);
+    let swapped = perform_swap(val);
+    if perform_swap(swapped) != val {panic!("Swap halves is bugged!")}
+    cpu.write_byte(addr, swapped);
+
+    cpu.set_flag(CPUFlags::Z, swapped == 0);
+}
+
 #[allow(dead_code)]
 fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -588,6 +636,15 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x15, inst!("RL L", |cpu, op|{rotate_left!(cpu.regs.l, cpu); 2})],
         [0x16, inst!("RL (HL)", |cpu, op|{rotate_left_ind(cpu.regs.hl(), cpu); 4})],
         [0x17, inst!("RL A", |cpu, op|{rotate_left!(cpu.regs.a, cpu); 2})],
+
+        [0x30, inst!("SWAP B", |cpu, op|{swap_halves!(cpu.regs.b, cpu); 2})],
+        [0x31, inst!("SWAP C", |cpu, op|{swap_halves!(cpu.regs.c, cpu); 2})],
+        [0x32, inst!("SWAP D", |cpu, op|{swap_halves!(cpu.regs.d, cpu); 2})],
+        [0x33, inst!("SWAP E", |cpu, op|{swap_halves!(cpu.regs.e, cpu); 2})],
+        [0x34, inst!("SWAP H", |cpu, op|{swap_halves!(cpu.regs.h, cpu); 2})],
+        [0x35, inst!("SWAP L", |cpu, op|{swap_halves!(cpu.regs.l, cpu); 2})],
+        [0x36, inst!("SWAP (HL)", |cpu, op|{swap_halves_ind(cpu.regs.hl(), cpu); 4})],
+        [0x37, inst!("SWAP A", |cpu, op|{swap_halves!(cpu.regs.a, cpu); 2})],
 
         [0x40, inst!("BIT 0,B", |cpu, op|{test_bit(op, cpu); 2})],
         [0x41, inst!("BIT 0,C", |cpu, op|{test_bit(op, cpu); 2})],
