@@ -666,6 +666,29 @@ fn test_bit(opcode: u8, cpu: &mut CPU) {
     cpu.set_flag(CPUFlags::H, true);    
 }
 
+fn reset_bit(opcode: u8, cpu: &mut CPU) {
+    let bit_to_reset = (opcode & 0b00111000) >> 3;
+    let register = (opcode & 0b00000111);
+    match register {
+        0b000 => {cpu.regs.b.set_bit(bit_to_reset, false);}
+        0b001 => {cpu.regs.c.set_bit(bit_to_reset, false);}
+        0b010 => {cpu.regs.d.set_bit(bit_to_reset, false);}
+        0b011 => {cpu.regs.e.set_bit(bit_to_reset, false);}
+        0b100 => {cpu.regs.h.set_bit(bit_to_reset, false);}
+        0b101 => {cpu.regs.l.set_bit(bit_to_reset, false);}
+        0b111 => {cpu.regs.a.set_bit(bit_to_reset, false);}
+        _ => {panic!("Unrecognized register in bit check instruction {:2X}", opcode)}
+    } 
+}
+
+fn reset_bit_ind(opcode: u8, cpu: &mut CPU) {
+    let addr = cpu.regs.hl();
+    let bit_to_reset = (opcode & 0b00111000) >> 3;
+    let cur_val = cpu.read_byte(addr);
+    let res = cur_val & !(1 << bit_to_reset);
+    cpu.write_byte(addr, res);
+}
+
 fn perform_swap(val: u8) -> u8 {
     ((val & 0xF0) >> 4) + ((val & 0xF) << 4)
 }
@@ -756,15 +779,6 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x66, inst!("Unimp", |cpu, op|{2})],
         [0x67, inst!("BIT 4,A", |cpu, op|{test_bit(op, cpu); 2})],
 
-        [0x60, inst!("BIT 4,B", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x61, inst!("BIT 4,C", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x62, inst!("BIT 4,D", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x63, inst!("BIT 4,E", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x64, inst!("BIT 4,H", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x65, inst!("BIT 4,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x66, inst!("Unimp", |cpu, op|{2})],
-        [0x67, inst!("BIT 4,A", |cpu, op|{test_bit(op, cpu); 2})],
-
         [0x68, inst!("BIT 5,B", |cpu, op|{test_bit(op, cpu); 2})],
         [0x69, inst!("BIT 5,C", |cpu, op|{test_bit(op, cpu); 2})],
         [0x6A, inst!("BIT 5,D", |cpu, op|{test_bit(op, cpu); 2})],
@@ -790,6 +804,78 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x7C, inst!("BIT 7,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x7D, inst!("BIT 7,L", |cpu, op|{test_bit(op, cpu); 2})],
         [0x7E, inst!("Unimp", |cpu, op|{2})],
-        [0x7F, inst!("BIT 7,A", |cpu, op|{test_bit(op, cpu); 2})]
+        [0x7F, inst!("BIT 7,A", |cpu, op|{test_bit(op, cpu); 2})],
+
+        [0x80, inst!("RES 0,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x81, inst!("RES 0,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x82, inst!("RES 0,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x83, inst!("RES 0,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x84, inst!("RES 0,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x85, inst!("RES 0,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x86, inst!("RES 0,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0x87, inst!("RES 0,A", |cpu, op|{reset_bit(op, cpu); 2})],
+
+        [0x88, inst!("RES 1,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x89, inst!("RES 1,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x8A, inst!("RES 1,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x8B, inst!("RES 1,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x8C, inst!("RES 1,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x8D, inst!("RES 1,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x8E, inst!("RES 1,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0x8F, inst!("RES 1,A", |cpu, op|{reset_bit(op, cpu); 2})],
+
+        [0x90, inst!("RES 2,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x91, inst!("RES 2,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x92, inst!("RES 2,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x93, inst!("RES 2,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x94, inst!("RES 2,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x95, inst!("RES 2,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x96, inst!("RES 2,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0x97, inst!("RES 2,A", |cpu, op|{reset_bit(op, cpu); 2})],
+
+        [0x98, inst!("RES 3,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x99, inst!("RES 3,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x9A, inst!("RES 3,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x9B, inst!("RES 3,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x9C, inst!("RES 3,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x9D, inst!("RES 3,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0x9E, inst!("RES 3,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0x9F, inst!("RES 3,A", |cpu, op|{reset_bit(op, cpu); 2})],
+
+        [0xA0, inst!("RES 4,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xA1, inst!("RES 4,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xA2, inst!("RES 4,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xA3, inst!("RES 4,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xA4, inst!("RES 4,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xA5, inst!("RES 4,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xA6, inst!("RES 4,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0xA7, inst!("RES 4,A", |cpu, op|{reset_bit(op, cpu); 2})],
+        
+        [0xA8, inst!("RES 5,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xA9, inst!("RES 5,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xAA, inst!("RES 5,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xAB, inst!("RES 5,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xAC, inst!("RES 5,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xAD, inst!("RES 5,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xAE, inst!("RES 5,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0xAF, inst!("RES 5,A", |cpu, op|{reset_bit(op, cpu); 2})],
+
+        [0xB0, inst!("RES 6,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xB1, inst!("RES 6,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xB2, inst!("RES 6,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xB3, inst!("RES 6,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xB4, inst!("RES 6,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xB5, inst!("RES 6,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xB6, inst!("RES 6,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0xB7, inst!("RES 6,A", |cpu, op|{reset_bit(op, cpu); 2})],
+
+        [0xB8, inst!("RES 7,B", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xB9, inst!("RES 7,C", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xBA, inst!("RES 7,D", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xBB, inst!("RES 7,E", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xBC, inst!("RES 7,H", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xBD, inst!("RES 7,L", |cpu, op|{reset_bit(op, cpu); 2})],
+        [0xBE, inst!("RES 7,(HL)", |cpu, op|{reset_bit_ind(op, cpu); 4})],
+        [0xBF, inst!("RES 7,A", |cpu, op|{reset_bit(op, cpu); 2})]
     )
 }
