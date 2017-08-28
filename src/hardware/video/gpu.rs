@@ -167,20 +167,12 @@ impl GPU {
 
         let tile_y = (((self.ly_coord.r() + self.scroll_y.r()) / 8) % 32) as u16;
         let tile_offset_y = ((self.ly_coord.r() + self.scroll_y.r()) % 8) as u16;
-
-        let signed_tile_maps = self.lcd_control.is_bit_set(B_BG_WIN_TILE_DATA_SELECT);        
-
+ 
         for x in 0..SCREEN_WIDTH {            
             let tile_offset_x = ((self.scroll_x.r() + x as u8) % 8) as u16;
             let tile_x = ((self.scroll_x.r().wrapping_add(x as u8) / 8) % 32) as u16;
             let tile_index = self.tile_maps.read_byte(background_tile_map_start + (tile_y * 32) + tile_x);
-            let tile_address =  
-                if signed_tile_maps {
-                    (tile_index.wrapping_sub(0x80)) as u16
-                } else {
-                    (tile_index as u16)              
-                };
-            let tile = self.tile_data.tiles[tile_address as usize];
+            let tile = self.tile_data.tiles[tile_index as usize];
             let y = self.ly_coord.r();
 
             let color = PALETTE_IN_USE[self.tile_data.get_pixel(&tile, tile_offset_y as u8, tile_offset_x as u8) as usize];
