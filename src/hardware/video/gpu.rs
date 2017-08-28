@@ -207,7 +207,7 @@ impl GPU {
 
             let color = PALETTE_PINKU[self.tile_data.get_pixel(&tile, tile_offset_x as u8, tile_offset_y as u8) as usize];
             
-            println!("Get pixel ({}, {}). Color: {:?} Tile: {:4X}", tile_offset_x, tile_offset_y, color, tile_index);
+            //println!("Get pixel ({}, {}). Color: {:?} Tile: {:4X}", tile_offset_x, tile_offset_y, color, tile_index);
             screen.set_pixel(y, x as u8, color);
         }
     }
