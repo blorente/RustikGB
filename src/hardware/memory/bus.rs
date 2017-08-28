@@ -21,6 +21,9 @@ const INTERNAL_RAM_ECHO_END     : u16 = 0xFDFF;
 const UNUSED_MEMORY_LOW_START   : u16 = 0xFEA0;
 const UNUSED_MEMORY_LOW_END     : u16 = 0xFEFF;
 
+const UNUSED_MEMORY_IO_START    : u16 = 0xFF4C;
+const UNUSED_MEMORY_IO_END      : u16 = 0xFF80;
+
 const ZERO_PAGE_RAM_START       : u16 = 0xFF80;
 const ZERO_PAGE_RAM_END         : u16 = 0xFFFF;
 
@@ -47,7 +50,8 @@ impl BUS {
             storage_ram: PLAIN_RAM::new(INTERNAL_RAM_START, INTERNAL_RAM_END),
             storage_zero_ram: PLAIN_RAM::new(ZERO_PAGE_RAM_START, ZERO_PAGE_RAM_END),
             unused_memory: UnusedMemory::new(vec![
-                (UNUSED_MEMORY_LOW_START, UNUSED_MEMORY_LOW_END)
+                (UNUSED_MEMORY_LOW_START, UNUSED_MEMORY_LOW_END),
+                (UNUSED_MEMORY_IO_START, UNUSED_MEMORY_IO_END)
                 ]),
 
             io_registers: IORegs::new(),

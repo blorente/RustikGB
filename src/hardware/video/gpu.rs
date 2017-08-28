@@ -87,26 +87,6 @@ impl GPU {
         
         //println!("Mode: {} Cycles: {}", self.lcdc_mode, self.mode_cycles);
         self.update_mode(cycles, screen);  
-
-        /*
-        if self.ly_coord.r() == 144 {
-            self.debug_color = [
-                rand::random::<u8>(),
-                rand::random::<u8>(),
-                rand::random::<u8>(),
-                255
-            ]
-        } else {        
-            let y = self.ly_coord.r();
-            screen.set_pixel(0, y, self.debug_color);
-            screen.set_pixel(1, y, self.debug_color);
-            screen.set_pixel(2, y, self.debug_color);
-            screen.set_pixel(3, y, self.debug_color);
-            screen.set_pixel(4, y, self.debug_color);
-            screen.set_pixel(5, y, self.debug_color);
-            screen.set_pixel(6, y, self.debug_color);
-        }
-        */
     }    
 
     fn update_mode(&mut self, cycles: u32, screen: &mut Screen) {
@@ -270,6 +250,7 @@ impl MemoryRegion for GPU {
     fn in_region(&self, addr: u16) -> bool {
         self.tile_data.in_region(addr) 
         || self.tile_maps.in_region(addr)
+        || self.sprite_oam.in_region(addr)
         || match addr {            
             LCD_CONTROL_ADDR        => {true}
             LCD_STATUS_ADDR         => {true}

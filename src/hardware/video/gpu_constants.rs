@@ -1,8 +1,5 @@
 pub const TILE_NUMBER                   : usize = 384;
 
-pub const SPRITE_OAM_START              : u16 = 0xFE00;
-pub const SPRITE_OAM_END                : u16 = 0xFE9F;
-
 // The VRAM is subdivided into two sections: Tile maps and tile datas.
 // Still, it is useful to know the boundaries
 // just for interfacing purpouses
@@ -36,6 +33,9 @@ pub const OBJECT_PALETTE_1_ADDR         : u16 = 0xFF48;
 pub const OBJECT_PALETTE_2_ADDR         : u16 = 0xFF49;
 pub const WINDOW_Y_ADDR                 : u16 = 0xFF4A;
 pub const WINDOW_X_ADDR                 : u16 = 0xFF4B;
+
+pub const SPRITE_OAM_START              : u16 = 0xFE00;
+pub const SPRITE_OAM_END                : u16 = 0xFE9F;
 
 // Timing stuff
 pub const CYCLES_PER_LINE               : u32 =  456;
