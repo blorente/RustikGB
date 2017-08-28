@@ -221,17 +221,17 @@ macro_rules! inc_16 {
 enum JumpImmCond {NZ, Z, NC, C, None}
 enum JumpImmMode {IntOffset, Immediate}
 fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond, mode: JumpImmMode) -> bool {
-    let old_pc = cpu.pc.r();
     let target_addr : u16 = 
         match mode {
             JumpImmMode::IntOffset => {
-                let offset = cpu.fetch_byte_immediate();
+                let offset = cpu.fetch_byte_immediate() as i8;
                 (cpu.pc.r() as u32 as i32 + offset as i32) as u16
             }
             JumpImmMode::Immediate => {
                 cpu.fetch_word_immediate()
             }
         };
+    let old_pc = cpu.pc.r();
 
     let new_pc: u16 =  match cond {
         JumpImmCond::NZ => {if !cpu.is_flag_set(CPUFlags::Z) {target_addr} else {cpu.pc.r()} }
