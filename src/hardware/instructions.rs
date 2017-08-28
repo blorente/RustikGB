@@ -548,10 +548,11 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{let off = cpu.fetch_byte_immediate(); ldh(cpu, off, true); 3})],
         [0xF1, inst!("POP AF", |cpu, op|{pop_into!(cpu.regs.a, cpu.regs.f, cpu);3})],
         [0xF2, inst!("LD A,(0xFF00+C)", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, true); 3})],
-        [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
+        [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts_delayed(); 1})],
         [0xF5, inst!("PUSH AF", |cpu, op|{let val = cpu.regs.af();cpu.push_word(val); 4})],
         [0xF6, inst!("OR A,#", |cpu, op|{or(cpu.fetch_byte_immediate(), cpu); 2})],
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 4})],
+        [0xFb, inst!("EI", |cpu, op|{cpu.enable_interrupts_delayed(); 1})],
         [0xFE, inst!("CP n", |cpu, op|{compare_with_a(cpu.fetch_byte_immediate(), cpu); 2})]     
     )
 }
