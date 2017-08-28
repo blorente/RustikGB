@@ -107,6 +107,26 @@ fn xor(other : u8, cpu : &mut CPU) {
     cpu.regs.a.w(res);
 }
 
+fn or(other : u8, cpu : &mut CPU) {
+    let a : u8 = cpu.regs.a.r();
+    let res : u8 = a | other;
+    cpu.set_flag(CPUFlags::Z, res == 0);
+    cpu.set_flag(CPUFlags::N, false);
+    cpu.set_flag(CPUFlags::H, false);
+    cpu.set_flag(CPUFlags::C, false);
+    cpu.regs.a.w(res);
+}
+
+fn and(other : u8, cpu : &mut CPU) {
+    let a : u8 = cpu.regs.a.r();
+    let res : u8 = a & other;
+    cpu.set_flag(CPUFlags::Z, res == 0);
+    cpu.set_flag(CPUFlags::N, false);
+    cpu.set_flag(CPUFlags::H, true);
+    cpu.set_flag(CPUFlags::C, false);
+    cpu.regs.a.w(res);
+}
+
 macro_rules! load_word_imm_u8 {
     ($target_hi_reg: expr, $target_lo_reg: expr, $cpu: expr) => {
         let word = $cpu.fetch_word_immediate();
@@ -448,6 +468,16 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x96, inst!("SUB A,(HL)", |cpu, op|{let addr = cpu.regs.hl(); sub_to_a(cpu.read_byte(addr), cpu); 2})],
         [0x97, inst!("SUB A,A", |cpu, op|{sub_to_a(cpu.regs.a.r(), cpu); 1})],
 
+        
+        [0xA0, inst!("AND A,B", |cpu, op|{and(cpu.regs.b.r(), cpu); 1})],
+        [0xA1, inst!("AND A,C", |cpu, op|{and(cpu.regs.c.r(), cpu); 1})],
+        [0xA2, inst!("AND A,D", |cpu, op|{and(cpu.regs.d.r(), cpu); 1})],
+        [0xA3, inst!("AND A,E", |cpu, op|{and(cpu.regs.e.r(), cpu); 1})],
+        [0xA4, inst!("AND A,H", |cpu, op|{and(cpu.regs.h.r(), cpu); 1})],
+        [0xA5, inst!("AND A,L", |cpu, op|{and(cpu.regs.l.r(), cpu); 1})],
+        [0xA6, inst!("AND A,(HL)", |cpu, op|{let hl = cpu.regs.hl(); and(cpu.read_byte(hl), cpu); 2})],
+        [0xA7, inst!("AND A,A", |cpu, op|{and(cpu.regs.a.r(), cpu); 1})],
+
         [0xA8, inst!("XOR A,B", |cpu, op|{xor(cpu.regs.b.r(), cpu); 1})],
         [0xA9, inst!("XOR A,C", |cpu, op|{xor(cpu.regs.c.r(), cpu); 1})],
         [0xAA, inst!("XOR A,D", |cpu, op|{xor(cpu.regs.d.r(), cpu); 1})],
@@ -456,6 +486,15 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xAD, inst!("XOR A,L", |cpu, op|{xor(cpu.regs.l.r(), cpu); 1})],
         [0xAE, inst!("XOR A,(HL)", |cpu, op|{let hl = cpu.regs.hl(); xor(cpu.read_byte(hl), cpu); 2})],
         [0xAF, inst!("XOR A,A", |cpu, op|{xor(cpu.regs.a.r(), cpu); 1})],
+
+        [0xB0, inst!("OR A,B", |cpu, op|{or(cpu.regs.b.r(), cpu); 1})],
+        [0xB1, inst!("OR A,C", |cpu, op|{or(cpu.regs.c.r(), cpu); 1})],
+        [0xB2, inst!("OR A,D", |cpu, op|{or(cpu.regs.d.r(), cpu); 1})],
+        [0xB3, inst!("OR A,E", |cpu, op|{or(cpu.regs.e.r(), cpu); 1})],
+        [0xB4, inst!("OR A,H", |cpu, op|{or(cpu.regs.h.r(), cpu); 1})],
+        [0xB5, inst!("OR A,L", |cpu, op|{or(cpu.regs.l.r(), cpu); 1})],
+        [0xB6, inst!("OR A,(HL)", |cpu, op|{let hl = cpu.regs.hl(); or(cpu.read_byte(hl), cpu); 2})],
+        [0xB7, inst!("OR A,A", |cpu, op|{or(cpu.regs.a.r(), cpu); 1})],
 
         [0xB8, inst!("CP B", |cpu, op|{compare_with_a(cpu.regs.b.r(), cpu); 1})],
         [0xB9, inst!("CP C", |cpu, op|{compare_with_a(cpu.regs.c.r(), cpu); 1})],
@@ -481,6 +520,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xE1, inst!("POP HL", |cpu, op|{pop_into!(cpu.regs.h, cpu.regs.l, cpu);3})],
         [0xE2, inst!("LD (0xFF00+C),A", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, false);3})],
         [0xE5, inst!("PUSH HL", |cpu, op|{let val = cpu.regs.hl();cpu.push_word(val); 4})],
+        [0xE6, inst!("AND A,#", |cpu, op|{and(cpu.fetch_byte_immediate(), cpu); 2})],
         [0xE9, inst!("JP (HL)", |cpu, op|{jump(cpu.regs.hl(), cpu); 1})],
         [0xEA, inst!("LD (nn),A", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_from_a_ind(addr, cpu); 4})],
         
@@ -489,6 +529,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xF2, inst!("LD A,(0xFF00+C)", |cpu, op|{let off = cpu.regs.c.r(); ldh(cpu, off, true); 3})],
         [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
         [0xF5, inst!("PUSH AF", |cpu, op|{let val = cpu.regs.af();cpu.push_word(val); 4})],
+        [0xF6, inst!("OR A,#", |cpu, op|{or(cpu.fetch_byte_immediate(), cpu); 2})],
         [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_into_a(cpu.read_byte(addr), cpu); 4})],
         [0xFE, inst!("CP n", |cpu, op|{compare_with_a(cpu.fetch_byte_immediate(), cpu); 2})]     
     )
