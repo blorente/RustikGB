@@ -371,6 +371,36 @@ fn ld_from_a_ind(addr: u16, cpu: &mut CPU) {
     cpu.write_byte(addr, val);    
 }
 
+fn add_16(target: &'static str, other: u16, cpu: &mut CPU) {
+    let target_val : u16;
+    let carry = if cpu.is_flag_set(CPUFlags::C) {1} else {0};
+    match target {
+        "BC" => {
+            target_val = cpu.regs.bc();
+            cpu.regs.bc_w(target_val.wrapping_add(other).wrapping_add(carry));
+        }
+        "DE" => {
+            target_val = cpu.regs.de();
+            cpu.regs.de_w(target_val.wrapping_add(other).wrapping_add(carry));
+        }
+        "HL" => {
+            target_val = cpu.regs.hl();
+            cpu.regs.hl_w(target_val.wrapping_add(other).wrapping_add(carry));
+        }
+        "SP" => {
+            target_val = cpu.sp.r();
+            cpu.sp.w(target_val.wrapping_add(other).wrapping_add(carry));
+        }
+        _ => {panic!("Not a valid target reg for add_16!");}
+    }
+
+
+    cpu.set_flag(CPUFlags::Z, target_val.wrapping_add(other).wrapping_add(carry) == 0);
+    cpu.set_flag(CPUFlags::N, false);
+    cpu.set_flag(CPUFlags::H, ((target_val & 0x0FFF) + (other & 0x0FFF)) > 0x0FFF);
+    cpu.set_flag(CPUFlags::C, (target_val as u32) + (other as u32) + (carry as u32) > 0xFFFF);
+}
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -381,6 +411,11 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x04, inst!("INC B", |cpu, op| {inc!(cpu.regs.b, cpu, false); 1})], 
         [0x05, inst!("DEC B", |cpu, op|{dec!(cpu.regs.b, cpu, false); 1})],      
         [0x06, inst!("LD B,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.b, cpu); 2})], 
+
+        [0x09, inst!("ADD HL,BC", |cpu, op|{add_16("HL", cpu.regs.bc(), cpu); 2})],
+        [0x19, inst!("ADD HL,DE", |cpu, op|{add_16("HL", cpu.regs.de(), cpu); 2})],
+        [0x29, inst!("ADD HL,HL", |cpu, op|{add_16("HL", cpu.regs.hl(), cpu); 2})],
+        [0x39, inst!("ADD HL,SP", |cpu, op|{add_16("HL", cpu.sp.r(), cpu); 2})],
         
         [0x0A, inst!("LD A,(BC)", |cpu, op|{let addr = cpu.regs.bc(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 2})],
         [0x0B, inst!("DEC BC", |cpu, op|{dec_16!("BC", cpu); 2})], 
