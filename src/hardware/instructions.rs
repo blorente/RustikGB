@@ -76,15 +76,6 @@ macro_rules! pushall {
     };
 }
 
-macro_rules! jp_imm_cond {
-     ($cond:expr, $cpu:expr) => {{
-        if $cond {
-            let imm = $cpu.fetch_word_immediate();
-            $cpu.pc.w(imm);
-        }
-    }}    
-}
-
 fn add_carry(other : u8, cpu : &mut CPU) {
     let carry = if cpu.is_flag_set(CPUFlags::C) {1} else {0};
     let a : u8 = cpu.regs.a.r();
@@ -227,12 +218,21 @@ macro_rules! inc_16 {
     };
 }
 
-
 enum JumpImmCond {NZ, Z, NC, C, None}
-fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond) -> bool {
+enum JumpImmMode {IntOffset, Immediate}
+fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond, mode: JumpImmMode) -> bool {
     let old_pc = cpu.pc.r();
-    let offset = cpu.fetch_byte_immediate() as i8;
-    let target_addr = (cpu.pc.r() as u32 as i32 + offset as i32) as u16;
+    let target_addr : u16 = 
+        match mode {
+            JumpImmMode::IntOffset => {
+                let offset = cpu.fetch_byte_immediate();
+                (cpu.pc.r() as u32 as i32 + offset as i32) as u16
+            }
+            JumpImmMode::Immediate => {
+                cpu.fetch_word_immediate()
+            }
+        };
+
     let new_pc: u16 =  match cond {
         JumpImmCond::NZ => {if !cpu.is_flag_set(CPUFlags::Z) {target_addr} else {cpu.pc.r()} }
         JumpImmCond::Z => {if cpu.is_flag_set(CPUFlags::Z) {target_addr} else {cpu.pc.r()} }
@@ -244,8 +244,11 @@ fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond) -> bool {
     new_pc != old_pc
 }
 
-fn ld_into_a(val: u8, cpu: &mut CPU) {
-    cpu.regs.a.w(val);
+fn call_cond(cpu: &mut CPU, cond: JumpImmCond) {
+    if jump_cond_imm(cpu, cond, JumpImmMode::Immediate) {
+        let next_inst = cpu.pc.r().wrapping_add(1);
+        cpu.push_word(next_inst);
+    }
 }
 
 fn ldh(cpu: &mut CPU, offset: u8, store_into_a: bool) {
@@ -276,17 +279,6 @@ macro_rules! inc {
     };
 }
 
-macro_rules! ld_from_a {
-    ($target_reg: expr, $cpu: expr) => {
-        let val = $cpu.regs.a.r();
-        $target_reg.w(val);
-    };
-}
-
-fn ld_from_a_ind(addr: u16, cpu: &mut CPU) {
-    let val = cpu.regs.a.r();
-    cpu.write_byte(addr, val);    
-}
 
 fn rotate_left_carry(original: u8, cpu: &mut CPU) -> u8 {
     let carry = if cpu.is_flag_set(CPUFlags::C) {1} else {0};
@@ -351,7 +343,16 @@ fn add_to_a(val: u8, cpu: &mut CPU) {
     cpu.set_flag(CPUFlags::H, ((a & 0x0F) + (val & 0x0F)) > 0x0F);
     cpu.set_flag(CPUFlags::C, (a as u16) + (val as u16) > 0xFF);
 }
+macro_rules! ld_into_reg {
+    ($val: expr, $target_reg: expr) => {        
+        $target_reg.w($val);
+    };
+}
 
+fn ld_from_a_ind(addr: u16, cpu: &mut CPU) {
+    let val = cpu.regs.a.r();
+    cpu.write_byte(addr, val);    
+}
 
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
@@ -364,7 +365,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x05, inst!("DEC B", |cpu, op|{dec!(cpu.regs.b, cpu, false); 1})],      
         [0x06, inst!("LD B,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.b, cpu); 2})], 
         
-        [0x0A, inst!("LD A,(BC)", |cpu, op|{let addr = cpu.regs.bc(); ld_into_a(cpu.read_byte(addr), cpu); 2})],
+        [0x0A, inst!("LD A,(BC)", |cpu, op|{let addr = cpu.regs.bc(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 2})],
         [0x0B, inst!("DEC BC", |cpu, op|{dec_16!("BC", cpu); 2})], 
         [0x0C, inst!("INC C", |cpu, op| {inc!(cpu.regs.c, cpu, false); 1})], 
         [0x0D, inst!("DEC C", |cpu, op|{dec!(cpu.regs.c, cpu, false); 1})],      
@@ -378,14 +379,14 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x16, inst!("LD D,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.d, cpu); 2})], 
         [0x17, inst!("RLA", |cpu, op|{rotate_left!(cpu.regs.a, cpu); 1})],  
         
-        [0x18, inst!("JR n", |cpu, op|{jump_cond_imm(cpu, JumpImmCond::None); 2})],
-        [0x1A, inst!("LD A,(DE)", |cpu, op|{let addr = cpu.regs.de(); ld_into_a(cpu.read_byte(addr), cpu); 2})],       
+        [0x18, inst!("JR n", |cpu, op|{jump_cond_imm(cpu, JumpImmCond::None, JumpImmMode::IntOffset); 2})],
+        [0x1A, inst!("LD A,(DE)", |cpu, op|{let addr = cpu.regs.de(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 2})],       
         [0x1B, inst!("DEC DE", |cpu, op|{dec_16!("DE", cpu); 2})], 
         [0x1C, inst!("INC E", |cpu, op| {inc!(cpu.regs.e, cpu, false); 1})], 
         [0x1D, inst!("DEC E", |cpu, op|{dec!(cpu.regs.e, cpu, false); 1})],      
         [0x1E, inst!("LD E,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.e, cpu); 2})],
 
-        [0x20, inst!("JR NZ,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NZ){3} else {2}})],
+        [0x20, inst!("JR NZ,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NZ, JumpImmMode::IntOffset){3} else {2}})],
         [0x21, inst!("LD HL,nn", |cpu, op|{load_word_imm_u8!(cpu.regs.h, cpu.regs.l, cpu); 3})],   
         [0x22, inst!("LDI (HL+), A", |cpu, op|{store_into_hl(cpu.regs.a.r(), cpu); inc_16!("HL", cpu); 3})],   
         [0x23, inst!("INC HL", |cpu, op|{inc_16!("HL", cpu); 2})],     
@@ -393,14 +394,14 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x25, inst!("DEC H", |cpu, op|{dec!(cpu.regs.h, cpu, false); 1})],
         [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],  
         
-        [0x28, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::Z){3} else {2}})],    
+        [0x28, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::Z, JumpImmMode::IntOffset){3} else {2}})],    
         [0x2A, inst!("LDI A,(HL+)", |cpu, op|{store_hl_into_a(cpu); inc_16!("HL", cpu); 3})],            
         [0x2B, inst!("DEC HL", |cpu, op|{dec_16!("HL", cpu); 2})], 
         [0x2C, inst!("INC L", |cpu, op| {inc!(cpu.regs.l, cpu, false); 1})], 
         [0x2D, inst!("DEC L", |cpu, op|{dec!(cpu.regs.l, cpu, false); 1})],
         [0x2E, inst!("LD L,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.l, cpu); 2})],
 
-        [0x30, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NC){3} else {2}})],  
+        [0x30, inst!("JR NC,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::NC, JumpImmMode::IntOffset){3} else {2}})],  
         [0x31, inst!("LD SP,nn", |cpu, op|{load_word_imm_u16!(cpu.sp, cpu); 3})],
         [0x32, inst!("LDD (HL-),A", |cpu, op|{store_into_hl(cpu.regs.a.r(), cpu); dec_16!("HL", cpu); 3})], 
         [0x33, inst!("INC SP", |cpu, op|{inc_16!("SP", cpu); 2})],           
@@ -408,21 +409,23 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x35, inst!("DEC (HL)", |cpu, op|{dec!(cpu.regs.l, cpu, true); 3})],
 
         [0x36, inst!("LD (HL),#", |cpu, op|{store_into_hl(cpu.fetch_byte_immediate(), cpu); 3})],
-        [0x38, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::C){3} else {2}})], 
+        [0x38, inst!("JR C,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::C, JumpImmMode::IntOffset){3} else {2}})], 
         [0x3A, inst!("LDD A,(HL-)", |cpu, op|{store_hl_into_a(cpu); dec_16!("HL", cpu); 3})],        
         [0x3B, inst!("DEC SP", |cpu, op|{dec_16!("SP", cpu); 2})], 
         [0x3C, inst!("INC A", |cpu, op| {inc!(cpu.regs.a, cpu, false); 1})], 
         [0x3D, inst!("DEC L", |cpu, op|{dec!(cpu.regs.a, cpu, false); 1})],
-        [0x3E, inst!("LD A,n", |cpu, op|{ld_into_a(cpu.fetch_byte_immediate(), cpu); 2})],
+        [0x3E, inst!("LD A,n", |cpu, op|{let val = cpu.fetch_byte_immediate(); ld_into_reg!(val, cpu.regs.a); 2})],
 
-        [0x47, inst!("LD B,A", |cpu, op|{ld_from_a!(cpu.regs.b, cpu); 1})],
-        [0x4F, inst!("LD C,A", |cpu, op|{ld_from_a!(cpu.regs.c, cpu); 1})],
-        
-        [0x57, inst!("LD D,A", |cpu, op|{ld_from_a!(cpu.regs.d, cpu); 1})],
-        [0x5F, inst!("LD E,A", |cpu, op|{ld_from_a!(cpu.regs.e, cpu); 1})],
+        [0x47, inst!("LD B,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.b); 1})],
+        [0x4F, inst!("LD C,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.c); 1})],
 
-        [0x67, inst!("LD H,A", |cpu, op|{ld_from_a!(cpu.regs.h, cpu); 1})],
-        [0x6F, inst!("LD L,A", |cpu, op|{ld_from_a!(cpu.regs.l, cpu); 1})],
+        [0x57, inst!("LD D,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.d); 1})],
+        [0x5F, inst!("LD E,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.e); 1})],
+
+        //[0x60, inst!()]
+
+        [0x67, inst!("LD H,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.h); 1})],
+        [0x6F, inst!("LD L,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.l); 1})],
 
         [0x70, inst!("LD (HL),B", |cpu, op|{store_into_hl(cpu.regs.b.r(), cpu); 2})],
         [0x71, inst!("LD (HL),C", |cpu, op|{store_into_hl(cpu.regs.c.r(), cpu); 2})],
@@ -432,14 +435,14 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x75, inst!("LD (HL),L", |cpu, op|{store_into_hl(cpu.regs.l.r(), cpu); 2})],
 
         [0x77, inst!("LD (HL),A", |cpu, op|{ld_from_a_ind(cpu.regs.hl(), cpu); 2})],
-        [0x78, inst!("LD A,B", |cpu, op|{ld_into_a(cpu.regs.b.r(), cpu); 1})],
-        [0x79, inst!("LD A,C", |cpu, op|{ld_into_a(cpu.regs.c.r(), cpu); 1})],
-        [0x7A, inst!("LD A,D", |cpu, op|{ld_into_a(cpu.regs.d.r(), cpu); 1})],
-        [0x7B, inst!("LD A,E", |cpu, op|{ld_into_a(cpu.regs.e.r(), cpu); 1})],
-        [0x7C, inst!("LD A,H", |cpu, op|{ld_into_a(cpu.regs.h.r(), cpu); 1})],
-        [0x7D, inst!("LD A,L", |cpu, op|{ld_into_a(cpu.regs.l.r(), cpu); 1})],
-        [0x7E, inst!("LD A,(HL)", |cpu, op|{let addr = cpu.regs.hl(); ld_into_a(cpu.read_byte(addr), cpu); 2})],
-        [0x7F, inst!("LD A,A", |cpu, op|{ld_into_a(cpu.regs.a.r(), cpu); 1})],
+        [0x78, inst!("LD A,B", |cpu, op|{ld_into_reg!(cpu.regs.b.r(), cpu.regs.a); 1})],
+        [0x79, inst!("LD A,C", |cpu, op|{ld_into_reg!(cpu.regs.c.r(), cpu.regs.a); 1})],
+        [0x7A, inst!("LD A,D", |cpu, op|{ld_into_reg!(cpu.regs.d.r(), cpu.regs.a); 1})],
+        [0x7B, inst!("LD A,E", |cpu, op|{ld_into_reg!(cpu.regs.e.r(), cpu.regs.a); 1})],
+        [0x7C, inst!("LD A,H", |cpu, op|{ld_into_reg!(cpu.regs.h.r(), cpu.regs.a); 1})],
+        [0x7D, inst!("LD A,L", |cpu, op|{ld_into_reg!(cpu.regs.l.r(), cpu.regs.a); 1})],
+        [0x7E, inst!("LD A,(HL)", |cpu, op|{let addr = cpu.regs.hl(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 2})],
+        [0x7F, inst!("LD A,A", |cpu, op|{let val = cpu.regs.a.r(); ld_into_reg!(val, cpu.regs.a); 1})],
 
         [0x80, inst!("ADD A,B", |cpu, op|{add_to_a(cpu.regs.b.r(), cpu); 1})],
         [0x81, inst!("ADD A,C", |cpu, op|{add_to_a(cpu.regs.c.r(), cpu); 1})],
@@ -467,7 +470,6 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x95, inst!("SUB A,L", |cpu, op|{sub_to_a(cpu.regs.l.r(), cpu); 1})],
         [0x96, inst!("SUB A,(HL)", |cpu, op|{let addr = cpu.regs.hl(); sub_to_a(cpu.read_byte(addr), cpu); 2})],
         [0x97, inst!("SUB A,A", |cpu, op|{sub_to_a(cpu.regs.a.r(), cpu); 1})],
-
         
         [0xA0, inst!("AND A,B", |cpu, op|{and(cpu.regs.b.r(), cpu); 1})],
         [0xA1, inst!("AND A,C", |cpu, op|{and(cpu.regs.c.r(), cpu); 1})],
@@ -506,11 +508,11 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xBF, inst!("CP A", |cpu, op|{compare_with_a(cpu.regs.a.r(), cpu); 1})],
 
         [0xC1, inst!("POP BC", |cpu, op|{pop_into!(cpu.regs.b, cpu.regs.c, cpu);3})],
-        [0xC3, inst!("JP nn", |cpu, op|{jp_imm_cond!(true, cpu); 3})],
+        [0xC3, inst!("JP nn", |cpu, op|{jump_cond_imm(cpu, JumpImmCond::None, JumpImmMode::Immediate); 3})],
         [0xC5, inst!("PUSH BC", |cpu, op|{let val = cpu.regs.bc();cpu.push_word(val); 4})],
         [0xC6, inst!("ADD A,#", |cpu, op|{add_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
         [0xC9, inst!("RET", |cpu, op|{let target_addr = cpu.pop_word(); jump(target_addr, cpu); 2})],
-        [0xCD, inst!("CALL nn", |cpu, op|{let next_inst = cpu.pc.r().wrapping_add(2); cpu.push_word(next_inst); jp_imm_cond!(true, cpu); 3})],
+        [0xCD, inst!("CALL nn", |cpu, op|{call_cond(cpu, JumpImmCond::None); 3})],
         
         [0xD1, inst!("POP DE", |cpu, op|{pop_into!(cpu.regs.d, cpu.regs.e, cpu);3})],
         [0xD5, inst!("PUSH DE", |cpu, op|{let val = cpu.regs.de();cpu.push_word(val); 4})],
@@ -530,7 +532,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xF3, inst!("DI", |cpu, op|{cpu.disable_interrupts(); 1})],
         [0xF5, inst!("PUSH AF", |cpu, op|{let val = cpu.regs.af();cpu.push_word(val); 4})],
         [0xF6, inst!("OR A,#", |cpu, op|{or(cpu.fetch_byte_immediate(), cpu); 2})],
-        [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_into_a(cpu.read_byte(addr), cpu); 4})],
+        [0xFA, inst!("LD A,(nn)", |cpu, op|{let addr = cpu.fetch_word_immediate(); let val = cpu.read_byte(addr); ld_into_reg!(val, cpu.regs.a); 4})],
         [0xFE, inst!("CP n", |cpu, op|{compare_with_a(cpu.fetch_byte_immediate(), cpu); 2})]     
     )
 }
