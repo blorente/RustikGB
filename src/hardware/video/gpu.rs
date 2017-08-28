@@ -88,28 +88,25 @@ impl GPU {
         //println!("Mode: {} Cycles: {}", self.lcdc_mode, self.mode_cycles);
         self.update_mode(cycles, screen);  
 
-        match self.lcdc_mode {
-            LCDCMode::VBLANK => {
-                if self.ly_coord.r() == 154 {
-                    self.debug_color = [
-                        rand::random::<u8>(),
-                        rand::random::<u8>(),
-                        rand::random::<u8>(),
-                        255
-                    ]
-                }
-            }
-            _ => {
-                let y = self.ly_coord.r();
-                screen.set_pixel(y, 0, self.debug_color);
-                screen.set_pixel(y, 1, self.debug_color);
-                screen.set_pixel(y, 2, self.debug_color);
-                screen.set_pixel(y, 3, self.debug_color);
-                screen.set_pixel(y, 4, self.debug_color);
-                screen.set_pixel(y, 5, self.debug_color);
-                screen.set_pixel(y, 6, self.debug_color);
-            }
+        /*
+        if self.ly_coord.r() == 154 {
+            self.debug_color = [
+                rand::random::<u8>(),
+                rand::random::<u8>(),
+                rand::random::<u8>(),
+                255
+            ]
+        } else {        
+            let y = self.ly_coord.r();
+            screen.set_pixel(0, y, self.debug_color);
+            screen.set_pixel(1, y, self.debug_color);
+            screen.set_pixel(2, y, self.debug_color);
+            screen.set_pixel(3, y, self.debug_color);
+            screen.set_pixel(4, y, self.debug_color);
+            screen.set_pixel(5, y, self.debug_color);
+            screen.set_pixel(6, y, self.debug_color);
         }
+        */
     }    
 
     fn update_mode(&mut self, cycles: u32, screen: &mut Screen) {
@@ -210,13 +207,9 @@ impl GPU {
 
             let color = PALETTE_PINKU[self.tile_data.get_pixel(&tile, tile_offset_x as u8, tile_offset_y as u8) as usize];
             
-            //println!("Get pixel ({}, {}). Color: {:?} Tile: {:4X}", tile_offset_x, tile_offset_y, color, tile_index);
-            screen.set_pixel(x as u8, y, color);
+            println!("Get pixel ({}, {}). Color: {:?} Tile: {:4X}", tile_offset_x, tile_offset_y, color, tile_index);
+            screen.set_pixel(y, x as u8, color);
         }
-
-        //println!("Tile data for line {} with offset {}", self.ly_coord.r(), first_tile_offset);
-        //hex_print("Tile indices", &tile_indices, 10);
-        //hex_print("Tile data", &tile_data, 10);
     }
 }
 
