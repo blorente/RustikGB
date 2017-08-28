@@ -286,7 +286,7 @@ fn rotate_left_carry(original: u8, cpu: &mut CPU) -> u8 {
     let rotated = ((original as u16) << 1).wrapping_add(carry);
     cpu.set_flag(CPUFlags::N, false);
     cpu.set_flag(CPUFlags::H, false);
-    cpu.set_flag(CPUFlags::C, (original & 0b1000000) > 0);
+    cpu.set_flag(CPUFlags::C, (original & 0b10000000) > 0);
     (rotated & 0xFF) as u8
 }
 
