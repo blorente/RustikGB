@@ -16,9 +16,9 @@ impl TileSet {
         }
     }
 
-    pub fn get_pixel(&self, tile: &Tile, x: u8, y: u8) -> u8 {
-        let hibit = if tile[y as usize][0].is_bit_set(x) {2} else {0} ;
-        let lobit = if tile[y as usize][1].is_bit_set(x) {2} else {0} ;
+    pub fn get_pixel(&self, tile: &Tile, line: u8, pixel: u8) -> u8 {
+        let hibit = if tile[line as usize][0].is_bit_set(pixel) {2} else {0} ;
+        let lobit = if tile[line as usize][1].is_bit_set(pixel) {1} else {0} ;
         let color = hibit + lobit;
         color
     }
@@ -38,18 +38,27 @@ impl TileSet {
         for tiley in 0..VERTICAL_TILES as usize {
             for tilex in 0..HORIZONTAL_TILES as usize {                
                 let tile = self.tiles[(tiley * HORIZONTAL_TILES as usize) + tilex];
+                println!("Printing tile {:?}",  tile);
 
+                let mut debug_buffer: [[u8; 8]; 8] = [[0; 8]; 8];
                 for line in 0..8 {
                     for pixel in 0..8 {
                         let color = self.get_pixel(&tile, line, pixel);
+                        println!("Setting pixel: ({}, {}), color: {}", line, pixel, color);
+                        debug_buffer[line as usize][pixel as usize] = color;
 
                         let r = PALETTE_PINKU[color as usize][0];
                         let g = PALETTE_PINKU[color as usize][1];
                         let b = PALETTE_PINKU[color as usize][2];
+                        let a = PALETTE_PINKU[color as usize][3];
 
-                        img.put_pixel((tilex + pixel as usize) as u32, (tiley + line as usize) as u32, Rgba { data: [r, g, b, 255]})
+                        img.put_pixel(((tilex * 8) + pixel as usize) as u32, ((tiley * 8) + line as usize) as u32, Rgba { data: [r, g, b, a]})
                     }
-                }               
+                }
+                println!("Tile Render:");
+                for i in 0..8 {
+                    println!("{:?}", debug_buffer[i]);           
+                }
             }
         }
 

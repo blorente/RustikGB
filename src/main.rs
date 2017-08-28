@@ -16,7 +16,7 @@ fn main() {
     let instructions = hardware::instructions::InstructionSet::new();
 
     let boot_buf = read_bin("assets/BIOS.gb");
-    let rom_buf = read_bin("assets/Tetris (World).gb");
+    let rom_buf = read_bin("assets/cpu_instrs.gb");
     let cartridge = hardware::cartridge::Cartridge::new(&rom_buf);    
     println!("Game data\n==========\n{}", &cartridge);
 

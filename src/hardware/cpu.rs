@@ -178,10 +178,6 @@ impl CPU {
     }
 
     pub fn write_byte(&mut self, addr: u16, val: u8) {
-        if addr >= 0x8000 && addr <= 0x8300  && val != 0 {
-            //println!("Stop! {}", self);
-            //panic!();
-        }
         self.bus.write_byte(addr, val)
     }
 

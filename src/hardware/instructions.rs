@@ -269,8 +269,8 @@ fn ld_from_a_ind(addr: u16, cpu: &mut CPU) {
 }
 
 fn rotate_left_carry(original: u8, cpu: &mut CPU) -> u8 {
-    let rotated = ((original as u16) << 1) | if cpu.is_flag_set(CPUFlags::C) {1} else {0};
-    cpu.set_flag(CPUFlags::Z, rotated == 0);
+    let carry = if cpu.is_flag_set(CPUFlags::C) {1} else {0};
+    let rotated = ((original as u16) << 1).wrapping_add(carry);
     cpu.set_flag(CPUFlags::N, false);
     cpu.set_flag(CPUFlags::H, false);
     cpu.set_flag(CPUFlags::C, (original & 0b1000000) > 0);

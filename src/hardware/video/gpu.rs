@@ -89,7 +89,7 @@ impl GPU {
         self.update_mode(cycles, screen);  
 
         /*
-        if self.ly_coord.r() == 154 {
+        if self.ly_coord.r() == 144 {
             self.debug_color = [
                 rand::random::<u8>(),
                 rand::random::<u8>(),
@@ -114,23 +114,24 @@ impl GPU {
         match self.lcdc_mode {
             LCDCMode::HBLANK => {                
                 if self.need_change_mode(HBLANK_CYCLES) {
-                    self.render_scan_line(screen);
                     self.increase_line();
+                    let y = self.ly_coord.r();
                     if self.ly_coord.r() == VBLANK_START_LINE {
                         self.change_mode_and_interrupt(LCDCMode::VBLANK);
-                    } else {
+                    } else {                        
+                        self.render_scan_line(screen);
                         self.change_mode_and_interrupt(LCDCMode::OAM);
                     }
                     self.mode_cycles -= HBLANK_CYCLES;
                 }
             }
             LCDCMode::VBLANK => {
+                if self.ly_coord.r() == VBLANK_END_LINE {
+                    self.change_mode_and_interrupt(LCDCMode::OAM);                   
+                }
                 if self.mode_cycles > CYCLES_PER_LINE {
                     self.increase_line();
                     self.mode_cycles -= CYCLES_PER_LINE;
-                }
-                if self.ly_coord.r() == VBLANK_END_LINE {
-                    self.change_mode_and_interrupt(LCDCMode::OAM);                   
                 }
             }
             LCDCMode::OAM => {
@@ -195,7 +196,7 @@ impl GPU {
         let tile_y = (((self.ly_coord.r() + self.scroll_y.r()) / 8) % 32) as u16;
         let tile_offset_y = ((self.ly_coord.r() + self.scroll_y.r()) % 8) as u16;
 
-        for x in 0..SCREEN_HEIGHT {            
+        for x in 0..SCREEN_WIDTH {            
             let tile_offset_x = ((self.scroll_x.r() + x as u8) % 8) as u16;
             let tile_x = ((self.scroll_x.r().wrapping_add(x as u8) / 8) % 32) as u16;
             let tile_index = self.tile_maps.read_byte(background_tile_map_start + (tile_y * 32) + tile_x);
@@ -205,10 +206,10 @@ impl GPU {
             let tile = self.tile_data.tiles[tile_address as usize];
             let y = self.ly_coord.r();
 
-            let color = PALETTE_PINKU[self.tile_data.get_pixel(&tile, tile_offset_x as u8, tile_offset_y as u8) as usize];
+            let color = PALETTE_PINKU[self.tile_data.get_pixel(&tile, tile_offset_y as u8, tile_offset_x as u8) as usize];
             
             //println!("Get pixel ({}, {}). Color: {:?} Tile: {:4X}", tile_offset_x, tile_offset_y, color, tile_index);
-            screen.set_pixel(y, x as u8, color);
+            screen.set_pixel(x as u8, y, color);
         }
     }
 }

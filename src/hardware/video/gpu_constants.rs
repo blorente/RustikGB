@@ -45,7 +45,7 @@ pub const OAM_CYCLES                    : u32 =   80;
 pub const VBLANK_CYCLES                 : u32 = 4560;
 
 pub const VBLANK_START_LINE             : u8  = 144;
-pub const VBLANK_END_LINE               : u8  = 153;
+pub const VBLANK_END_LINE               : u8  = 154;
 
 // Relevant bits
 // LCD Control Register
@@ -58,8 +58,8 @@ pub const B_LYC_COINCIDENCE_INTERRUPT   : u8 = 6;
 
 // Palettes
 pub const PALETTE_PINKU: [[u8; 4]; 4] = [
-    [238, 66, 7, 244],
+    [238, 66, 7, 255],
     [179, 47, 183, 255],
-    [112, 28, 56, 114],
+    [112, 28, 56, 255],
     [ 45,  11, 45, 255],
 ];

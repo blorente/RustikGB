@@ -3,6 +3,8 @@ use std::collections::HashSet;
 use hardware::instructions::InstructionSet;
 use hardware::hex_print;
 
+const DEBUG_ACTIVATED: bool = false;
+
 #[derive(PartialEq)]
 enum DebuggerState {
     RUN,
@@ -20,7 +22,7 @@ impl Debugger {
         Debugger {
             breakpoints: create_breakpoints(),
             state: DebuggerState::RUN,
-            activated: false,
+            activated: DEBUG_ACTIVATED,
         }
     }
 
@@ -34,6 +36,12 @@ impl Debugger {
                     opcode,
                     instruction_set.print_instr(opcode, bitwise)); 
         }
+
+        /*
+        if cpu.regs.hl() >= 0x8000 && cpu.regs.hl() <= 0x8300 && cpu.regs.a.r() != 0 {
+            self.breakpoints.insert(pc);
+        }
+        */
 
         if self.breakpoints.contains(&pc) {
             cpu.bus.gpu.tile_data.dump_tiles();
@@ -106,6 +114,6 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![
-        0xA4
+        0x100
     ]
 }
