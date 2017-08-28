@@ -17,8 +17,8 @@ impl TileSet {
     }
 
     pub fn get_pixel(&self, tile: &Tile, line: u8, pixel: u8) -> u8 {
-        let hibit = if tile[line as usize][0].is_bit_set(pixel) {2} else {0} ;
-        let lobit = if tile[line as usize][1].is_bit_set(pixel) {1} else {0} ;
+        let hibit = if tile[line as usize][0].is_bit_set(7 - pixel) {2} else {0} ;
+        let lobit = if tile[line as usize][1].is_bit_set(7 - pixel) {1} else {0} ;
         let color = hibit + lobit;
         color
     }
@@ -38,7 +38,7 @@ impl TileSet {
         for tiley in 0..VERTICAL_TILES as usize {
             for tilex in 0..HORIZONTAL_TILES as usize {                
                 let tile = self.tiles[(tiley * HORIZONTAL_TILES as usize) + tilex];
-                println!("Printing tile {:?}",  tile);
+                //println!("Printing tile {:?}",  tile);
 
                 let mut debug_buffer: [[u8; 8]; 8] = [[0; 8]; 8];
                 for line in 0..8 {
@@ -55,14 +55,17 @@ impl TileSet {
                         img.put_pixel(((tilex * 8) + pixel as usize) as u32, ((tiley * 8) + line as usize) as u32, Rgba { data: [r, g, b, a]})
                     }
                 }
+                /*
                 println!("Tile Render:");
                 for i in 0..8 {
                     println!("{:?}", debug_buffer[i]);           
                 }
+                */
             }
         }
 
         img.save("logs/tile_dump.png").unwrap();
+        println!("Tiles dumped!");
     }
 }
 
@@ -75,6 +78,7 @@ impl MemoryRegion for TileSet {
     }
 
     fn write_byte(&mut self, addr: u16, val: u8) {
+        println!("Write {:2X} to addr {:4X}", val, addr);
         let base_addr = addr - self.start();
         let tile_index = (base_addr / 16) as usize;
         let tile_row = (base_addr % 16) as usize;
