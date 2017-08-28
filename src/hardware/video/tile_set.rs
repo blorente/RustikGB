@@ -47,10 +47,10 @@ impl TileSet {
                        //println!("Setting pixel: ({}, {}), color: {}", line, pixel, color);
                         debug_buffer[line as usize][pixel as usize] = color;
 
-                        let r = PALETTE_PINKU[color as usize][0];
-                        let g = PALETTE_PINKU[color as usize][1];
-                        let b = PALETTE_PINKU[color as usize][2];
-                        let a = PALETTE_PINKU[color as usize][3];
+                        let r = PALETTE_IN_USE[color as usize][0];
+                        let g = PALETTE_IN_USE[color as usize][1];
+                        let b = PALETTE_IN_USE[color as usize][2];
+                        let a = PALETTE_IN_USE[color as usize][3];
 
                         img.put_pixel(((tilex * 8) + pixel as usize) as u32, ((tiley * 8) + line as usize) as u32, Rgba { data: [r, g, b, a]})
                     }

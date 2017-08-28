@@ -63,3 +63,12 @@ pub const PALETTE_PINKU: [[u8; 4]; 4] = [
     [219, 127, 214, 255],
     [ 45,  11,  45, 255],
 ];
+
+pub const ORIGINAL_PALETTE: [[u8; 4]; 4] = [
+    [155, 188, 15, 255],
+    [139, 172, 15, 255],
+    [48, 98, 48, 255],
+    [ 15, 56, 15, 255],
+];
+
+pub const PALETTE_IN_USE: &[[u8; 4]; 4] = &ORIGINAL_PALETTE;
