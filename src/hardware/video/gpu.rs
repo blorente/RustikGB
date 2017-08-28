@@ -200,7 +200,6 @@ impl GPU {
             let tile_offset_x = ((self.scroll_x.r() + x as u8) % 8) as u16;
             let tile_x = ((self.scroll_x.r().wrapping_add(x as u8) / 8) % 32) as u16;
             let tile_index = self.tile_maps.read_byte(background_tile_map_start + (tile_y * 32) + tile_x);
-            let dummy = 0;
             let tile_address =  
                 if !signed_tile_maps {tile_index as u16} 
                 else {(tile_index as i8 as i16 + 128) as u16};
