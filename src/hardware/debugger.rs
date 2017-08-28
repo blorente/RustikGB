@@ -78,7 +78,10 @@ impl Debugger {
                     if end > start {
                         self.print_range(start, end, cpu);
                     }
-                }            
+                }
+                "t" => {
+                    cpu.bus.gpu.tile_data.dump_tiles();
+                }          
                 _ => {}
             }
 
@@ -114,6 +117,5 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![
-        
     ]
 }
