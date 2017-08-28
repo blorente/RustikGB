@@ -66,7 +66,6 @@ impl MemoryRegion for TileSet {
     }
 
     fn write_byte(&mut self, addr: u16, val: u8) {
-        println!("Written to TileData: {:4X}: {:2X}", addr, val);
         let base_addr = addr - self.start();
         let tile_index = (base_addr / 16) as usize;
         let tile_row = (base_addr % 16) as usize;

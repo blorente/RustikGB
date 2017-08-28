@@ -1,6 +1,7 @@
 use hardware::cpu::CPU;
 use std::collections::HashSet;
 use hardware::instructions::InstructionSet;
+use hardware::hex_print;
 
 #[derive(PartialEq)]
 enum DebuggerState {
@@ -33,7 +34,7 @@ impl Debugger {
                     opcode,
                     instruction_set.print_instr(opcode, bitwise)); 
         }
-        
+
         if self.breakpoints.contains(&pc) {
             cpu.bus.gpu.tile_data.dump_tiles();
         }
@@ -62,7 +63,14 @@ impl Debugger {
                 "p" => {
                     let addr : u16 = u16::from_str_radix(&command[4..8], 16).unwrap();
                     self.print_addr(addr, cpu);                    
-                    }             
+                    } 
+                "d" => {
+                    let start: u16 = u16::from_str_radix(&command[4..8], 16).unwrap();
+                    let end: u16 = u16::from_str_radix(&command[11..15], 16).unwrap();
+                    if end > start {
+                        self.print_range(start, end, cpu);
+                    }
+                }            
                 _ => {}
             }
 
@@ -73,6 +81,14 @@ impl Debugger {
     fn print_addr(&self, addr: u16, cpu: &CPU) {
         let val = cpu.read_byte(addr);
         println!("Addr {:04X} contains {:02X}", addr, val);
+    }
+
+    fn print_range(&self, start: u16, end: u16, cpu: &CPU) {
+        let mut values : Vec<u8> = vec![0; (end - start + 1) as usize];
+        for i in start..end {
+            values[(i - start) as usize] = cpu.read_byte(i);
+        }
+        hex_print("Debugger Dump", &values, 20);
     }
 }
 
@@ -90,6 +106,6 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![
-        0x100
+        0xA4
     ]
 }
