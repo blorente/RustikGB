@@ -44,7 +44,7 @@ impl TileSet {
                 for line in 0..8 {
                     for pixel in 0..8 {
                         let color = self.get_pixel(&tile, line, pixel);
-                        println!("Setting pixel: ({}, {}), color: {}", line, pixel, color);
+                       //println!("Setting pixel: ({}, {}), color: {}", line, pixel, color);
                         debug_buffer[line as usize][pixel as usize] = color;
 
                         let r = PALETTE_PINKU[color as usize][0];

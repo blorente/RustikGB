@@ -245,8 +245,9 @@ fn jump_cond_imm(cpu: &mut CPU, cond: JumpImmCond, mode: JumpImmMode) -> bool {
 }
 
 fn call_cond(cpu: &mut CPU, cond: JumpImmCond) {
+    let old_pc = cpu.pc.r();
     if jump_cond_imm(cpu, cond, JumpImmMode::Immediate) {
-        let next_inst = cpu.pc.r();
+        let next_inst = old_pc.wrapping_add(2);
         cpu.push_word(next_inst);
     }
 }
@@ -522,19 +523,19 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
 
         [0xC1, inst!("POP BC", |cpu, op|{pop_into!(cpu.regs.b, cpu.regs.c, cpu);3})],
         [0xC3, inst!("JP nn", |cpu, op|{jump_cond_imm(cpu, JumpImmCond::None, JumpImmMode::Immediate); 3})],
-        [0xC4, inst!("CALL NZ,nn", |cpu, op|{call_cond(cpu, JumpImmCond::NZ);3})],
+        //[0xC4, inst!("CALL NZ,nn", |cpu, op|{call_cond(cpu, JumpImmCond::NZ);3})],
         [0xC5, inst!("PUSH BC", |cpu, op|{let val = cpu.regs.bc();cpu.push_word(val); 4})],
         [0xC6, inst!("ADD A,#", |cpu, op|{add_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
         [0xC9, inst!("RET", |cpu, op|{let target_addr = cpu.pop_word(); jump(target_addr, cpu); 2})],
-        [0xCC, inst!("CALL Z,nn", |cpu, op|{call_cond(cpu, JumpImmCond::Z);3})],
+        //[0xCC, inst!("CALL Z,nn", |cpu, op|{call_cond(cpu, JumpImmCond::Z);3})],
         [0xCD, inst!("CALL nn", |cpu, op|{call_cond(cpu, JumpImmCond::None); 3})],
         
         [0xD1, inst!("POP DE", |cpu, op|{pop_into!(cpu.regs.d, cpu.regs.e, cpu);3})],
-        [0xD4, inst!("CALL C,nn", |cpu, op|{call_cond(cpu, JumpImmCond::C);3})],
+        //[0xD4, inst!("CALL C,nn", |cpu, op|{call_cond(cpu, JumpImmCond::C);3})],
         [0xD5, inst!("PUSH DE", |cpu, op|{let val = cpu.regs.de();cpu.push_word(val); 4})],
         [0xD6, inst!("SUB A,#", |cpu, op|{sub_to_a(cpu.fetch_byte_immediate(), cpu); 2})],
         
-        [0xDC, inst!("CALL NC,nn", |cpu, op|{call_cond(cpu, JumpImmCond::NC);3})],
+        //[0xDC, inst!("CALL NC,nn", |cpu, op|{call_cond(cpu, JumpImmCond::NC);3})],
 
         [0xE0, inst!("LD (0xFF00+n),A", |cpu, op|{let off = cpu.fetch_byte_immediate();ldh(cpu, off, false);3})],
         [0xE1, inst!("POP HL", |cpu, op|{pop_into!(cpu.regs.h, cpu.regs.l, cpu);3})],
