@@ -337,6 +337,29 @@ fn rla(cpu: &mut CPU) {
     cpu.regs.a.w((rotated & 0xFF) as u8)
 }
 
+fn rotate_left_no_carry(original: u8, cpu: &mut CPU) -> u8 {
+    let rotated = (original as u16) << 1;
+    cpu.set_flag(CPUFlags::Z, rotated == 0);
+    cpu.set_flag(CPUFlags::N, false);
+    cpu.set_flag(CPUFlags::H, false);
+    cpu.set_flag(CPUFlags::C, (original & 0b10000000) > 0);   
+    (rotated & 0xFF) as u8
+}
+
+macro_rules! rl_no_carry_reg {
+    ($target_reg: expr, $cpu: expr) => {
+        let original = $target_reg.r();    
+        let res = rotate_left_no_carry(original, $cpu);
+        $target_reg.w(res);
+    };
+}
+
+fn rl_no_carry_ind(addr: u16, cpu: &mut CPU) {
+    let original = cpu.read_byte(addr);
+    let res = rotate_left_no_carry(original, cpu);
+    cpu.write_byte(addr, res);
+}
+
 macro_rules! complement {
     ($target_reg: expr, $cpu: expr) => {
         let val = $target_reg.r();
@@ -437,6 +460,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x04, inst!("INC B", |cpu, op| {inc!(cpu.regs.b, cpu, false); 1})], 
         [0x05, inst!("DEC B", |cpu, op|{dec!(cpu.regs.b, cpu, false); 1})],      
         [0x06, inst!("LD B,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.b, cpu); 2})], 
+        [0x07, inst!("RLCA", |cpu, op|{rl_no_carry_reg!(cpu.regs.a, cpu); 1})],
 
         [0x09, inst!("ADD HL,BC", |cpu, op|{add_16("HL", cpu.regs.bc(), cpu); 2})],
         [0x19, inst!("ADD HL,DE", |cpu, op|{add_16("HL", cpu.regs.de(), cpu); 2})],
@@ -752,28 +776,6 @@ fn swap_halves_ind(addr: u16, cpu: &mut CPU) {
     cpu.set_flag(CPUFlags::Z, swapped == 0);
 }
 
-fn rotate_left_no_carry(original: u8, cpu: &mut CPU) -> u8 {
-    let rotated = (original as u16) << 1;
-    cpu.set_flag(CPUFlags::Z, rotated == 0);
-    cpu.set_flag(CPUFlags::N, false);
-    cpu.set_flag(CPUFlags::H, false);
-    cpu.set_flag(CPUFlags::C, (original & 0b10000000) > 0);   
-    (rotated & 0xFF) as u8
-}
-
-macro_rules! sla {
-    ($target_reg: expr, $cpu: expr) => {
-        let original = $target_reg.r();    
-        let res = rotate_left_no_carry(original, $cpu);
-        $target_reg.w(res);
-    };
-}
-
-fn sla_ind(addr: u16, cpu: &mut CPU) {
-    let original = cpu.read_byte(addr);
-    let res = rotate_left_no_carry(original, cpu);
-    cpu.write_byte(addr, res);
-}
 
 
 #[allow(dead_code)]
@@ -789,14 +791,14 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x16, inst!("RL (HL)", |cpu, op|{rotate_left_ind(cpu.regs.hl(), cpu); 4})],
         [0x17, inst!("RL A", |cpu, op|{rotate_left!(cpu.regs.a, cpu); 2})],
 
-        [0x20, inst!("SLA B", |cpu, op|{sla!(cpu.regs.b, cpu); 2})],
-        [0x21, inst!("SLA C", |cpu, op|{sla!(cpu.regs.c, cpu); 2})],
-        [0x22, inst!("SLA D", |cpu, op|{sla!(cpu.regs.d, cpu); 2})],
-        [0x23, inst!("SLA E", |cpu, op|{sla!(cpu.regs.e, cpu); 2})],
-        [0x24, inst!("SLA H", |cpu, op|{sla!(cpu.regs.h, cpu); 2})],
-        [0x25, inst!("SLA L", |cpu, op|{sla!(cpu.regs.l, cpu); 2})],
-        [0x26, inst!("SLA (HL)", |cpu, op|{sla_ind(cpu.regs.hl(), cpu); 4})],
-        [0x27, inst!("SLA A", |cpu, op|{sla!(cpu.regs.a, cpu); 2})],
+        [0x20, inst!("SLA B", |cpu, op|{rl_no_carry_reg!(cpu.regs.b, cpu); 2})],
+        [0x21, inst!("SLA C", |cpu, op|{rl_no_carry_reg!(cpu.regs.c, cpu); 2})],
+        [0x22, inst!("SLA D", |cpu, op|{rl_no_carry_reg!(cpu.regs.d, cpu); 2})],
+        [0x23, inst!("SLA E", |cpu, op|{rl_no_carry_reg!(cpu.regs.e, cpu); 2})],
+        [0x24, inst!("SLA H", |cpu, op|{rl_no_carry_reg!(cpu.regs.h, cpu); 2})],
+        [0x25, inst!("SLA L", |cpu, op|{rl_no_carry_reg!(cpu.regs.l, cpu); 2})],
+        [0x26, inst!("SLA (HL)", |cpu, op|{rl_no_carry_ind(cpu.regs.hl(), cpu); 4})],
+        [0x27, inst!("SLA A", |cpu, op|{rl_no_carry_reg!(cpu.regs.a, cpu); 2})],
 
         [0x30, inst!("SWAP B", |cpu, op|{swap_halves!(cpu.regs.b, cpu); 2})],
         [0x31, inst!("SWAP C", |cpu, op|{swap_halves!(cpu.regs.c, cpu); 2})],
