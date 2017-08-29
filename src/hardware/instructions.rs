@@ -492,7 +492,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x46, inst!("LD B,(HL)", |cpu, op|{let val = cpu.read_byte(cpu.regs.hl()); ld_into_reg!(val, cpu.regs.b); 2})],
         [0x47, inst!("LD B,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.b); 1})],
       
-        [0x48, inst!("LD C,B", |cpu, op|{ld_into_reg!(cpu.regs.d.r(), cpu.regs.c); 1})],
+        [0x48, inst!("LD C,B", |cpu, op|{ld_into_reg!(cpu.regs.b.r(), cpu.regs.c); 1})],
         [0x49, inst!("LD C,C", |cpu, op|{let val = cpu.regs.c.r(); ld_into_reg!(val, cpu.regs.c); 1})],
         [0x4A, inst!("LD C,D", |cpu, op|{ld_into_reg!(cpu.regs.d.r(), cpu.regs.c); 1})],
         [0x4B, inst!("LD C,E", |cpu, op|{ld_into_reg!(cpu.regs.e.r(), cpu.regs.c); 1})],
@@ -510,7 +510,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x56, inst!("LD D,(HL)", |cpu, op|{let val = cpu.read_byte(cpu.regs.hl()); ld_into_reg!(val, cpu.regs.d); 2})],
         [0x57, inst!("LD D,A", |cpu, op|{ld_into_reg!(cpu.regs.a.r(), cpu.regs.d); 1})],
 
-        [0x58, inst!("LD E,B", |cpu, op|{ld_into_reg!(cpu.regs.d.r(), cpu.regs.e); 1})],
+        [0x58, inst!("LD E,B", |cpu, op|{ld_into_reg!(cpu.regs.b.r(), cpu.regs.e); 1})],
         [0x59, inst!("LD E,C", |cpu, op|{ld_into_reg!(cpu.regs.c.r(), cpu.regs.e); 1})],
         [0x5A, inst!("LD E,D", |cpu, op|{ld_into_reg!(cpu.regs.d.r(), cpu.regs.e); 1})],
         [0x5B, inst!("LD E,E", |cpu, op|{let val = cpu.regs.e.r(); ld_into_reg!(val, cpu.regs.e); 1})],
