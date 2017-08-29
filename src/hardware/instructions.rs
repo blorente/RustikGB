@@ -360,6 +360,31 @@ fn rl_no_carry_ind(addr: u16, cpu: &mut CPU) {
     cpu.write_byte(addr, res);
 }
 
+
+fn rotate_right_no_carry(original: u8, cpu: &mut CPU) -> u8 {
+    let rotated = (original as u16) >> 1;
+    cpu.set_flag(CPUFlags::Z, rotated == 0);
+    cpu.set_flag(CPUFlags::N, false);
+    cpu.set_flag(CPUFlags::H, false);
+    cpu.set_flag(CPUFlags::C, (original & 0b00000001) > 0);   
+    (rotated & 0xFF) as u8
+}
+
+
+macro_rules! rr_no_carry_reg {
+    ($target_reg: expr, $cpu: expr) => {
+        let original = $target_reg.r();    
+        let res = rotate_right_no_carry(original, $cpu);
+        $target_reg.w(res);
+    };
+}
+
+fn rr_no_carry_ind(addr: u16, cpu: &mut CPU) {
+    let original = cpu.read_byte(addr);
+    let res = rotate_right_no_carry(original, cpu);
+    cpu.write_byte(addr, res);
+}
+
 macro_rules! complement {
     ($target_reg: expr, $cpu: expr) => {
         let val = $target_reg.r();
@@ -692,6 +717,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xE9, inst!("JP (HL)", |cpu, op|{jump(cpu.regs.hl(), cpu); 1})],
         [0xEA, inst!("LD (nn),A", |cpu, op|{let addr = cpu.fetch_word_immediate(); ld_from_a_ind(addr, cpu); 4})],
         [0xEF, inst!("RST 0x28", |cpu, op|{reset(op, cpu); 8})],
+        [0xEE, inst!("XOR A,#", |cpu, op|{let val = cpu.fetch_byte_immediate(); xor(val, cpu); 2})],
         
         [0xF0, inst!("LD A,(0xFF00+n)", |cpu, op|{let off = cpu.fetch_byte_immediate(); ldh(cpu, off, true); 3})],
         [0xF1, inst!("POP AF", |cpu, op|{pop_into!(cpu.regs.a, cpu.regs.f, cpu);3})],
@@ -827,6 +853,15 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x35, inst!("SWAP L", |cpu, op|{swap_halves!(cpu.regs.l, cpu); 2})],
         [0x36, inst!("SWAP (HL)", |cpu, op|{swap_halves_ind(cpu.regs.hl(), cpu); 4})],
         [0x37, inst!("SWAP A", |cpu, op|{swap_halves!(cpu.regs.a, cpu); 2})],
+
+        [0x38, inst!("SRL B", |cpu, op|{rr_no_carry_reg!(cpu.regs.b, cpu); 2})],
+        [0x39, inst!("SRL C", |cpu, op|{rr_no_carry_reg!(cpu.regs.c, cpu); 2})],
+        [0x3A, inst!("SRL D", |cpu, op|{rr_no_carry_reg!(cpu.regs.d, cpu); 2})],
+        [0x3B, inst!("SRL E", |cpu, op|{rr_no_carry_reg!(cpu.regs.e, cpu); 2})],
+        [0x3C, inst!("SRL H", |cpu, op|{rr_no_carry_reg!(cpu.regs.h, cpu); 2})],
+        [0x3D, inst!("SRL L", |cpu, op|{rr_no_carry_reg!(cpu.regs.l, cpu); 2})],
+        [0x3E, inst!("SRL (HL)", |cpu, op|{rr_no_carry_ind(cpu.regs.hl(), cpu); 4})],
+        [0x3F, inst!("SRL A", |cpu, op|{rr_no_carry_reg!(cpu.regs.a, cpu); 2})],
 
         [0x40, inst!("BIT 0,B", |cpu, op|{test_bit(op, cpu); 2})],
         [0x41, inst!("BIT 0,C", |cpu, op|{test_bit(op, cpu); 2})],

@@ -55,7 +55,7 @@ impl Interrupts {
     pub fn set_interrupt(&mut self, interrupt: InterruptType) {
         let it = interrupt as u8;
         if self.are_enabled && self.interrupt_enable.is_bit_set(it) {
-            println!("Interrupt set: {:?}", it);
+            //println!("Interrupt set: {:?}", it);
             self.interrupt_flags.set_bit(it, true);            
         }
     }
