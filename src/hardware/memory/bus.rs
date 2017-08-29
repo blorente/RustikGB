@@ -32,7 +32,6 @@ const UNUSED_MEMORY_IO_END      : u16 = 0xFF80;
 const ZERO_PAGE_RAM_START       : u16 = 0xFF80;
 const ZERO_PAGE_RAM_END         : u16 = 0xFFFF;
 
-
 pub struct BUS {
     cartridge : Cartridge,
     boot_rom: PLAIN_RAM,
@@ -40,7 +39,7 @@ pub struct BUS {
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     unused_memory: UnusedMemory,
-    interrupt_handler: Interrupts,
+    pub interrupt_handler: Interrupts,
     pub joypad: Joypad,
 
     pub screen: Screen,    

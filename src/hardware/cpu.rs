@@ -6,6 +6,9 @@ use hardware::registers::Register;
 use hardware::video::screen::Screen;
 use hardware::debugger::Debugger;
 use hardware::instructions::InstructionSet;
+use hardware::interrupts::InterruptType;
+use hardware::interrupts::Interrupts;
+use hardware::interrupts::*;
 
 const CYCLES_PER_FRAME: u32 = 70244;
 
@@ -156,6 +159,9 @@ impl CPU {
             }            
 
             self.bus.step(step_cycles);
+
+            self.handle_interrupts();
+
             step_cycles
     }
 
@@ -233,6 +239,38 @@ impl CPU {
         let res = self.bus.read_byte(sp);
         self.sp.w(sp.wrapping_add(1));
         res
+    }
+
+    fn handle_interrupts(&mut self) {
+        if !self.bus.interrupt_handler.are_enabled() {return;}
+        
+        // We read in order of priority
+        if self.bus.interrupt_handler.read_and_clear(InterruptType::VBlank) {
+            self.bus.interrupt_handler.disable();
+            let pc = self.pc.r();
+            self.push_word(pc);
+            self.pc.w(VBLANK_ISR_START);
+        } else if self.bus.interrupt_handler.read_and_clear(InterruptType::LCDC) {
+            self.bus.interrupt_handler.disable();
+            let pc = self.pc.r();
+            self.push_word(pc);
+            self.pc.w(LCDC_ISR_START);
+        } else if self.bus.interrupt_handler.read_and_clear(InterruptType::Timer) {
+            self.bus.interrupt_handler.disable();
+            let pc = self.pc.r();
+            self.push_word(pc);
+            self.pc.w(TIMER_ISR_START);
+        } else if self.bus.interrupt_handler.read_and_clear(InterruptType::Serial) {
+            self.bus.interrupt_handler.disable();
+            let pc = self.pc.r();
+            self.push_word(pc);
+            self.pc.w(SERIAL_ISR_START);
+        } else if self.bus.interrupt_handler.read_and_clear(InterruptType::Pad) {
+            self.bus.interrupt_handler.disable();
+            let pc = self.pc.r();
+            self.push_word(pc);
+            self.pc.w(JOYPAD_ISR_START);
+        }
     }
 }
 
