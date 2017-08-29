@@ -34,7 +34,7 @@ const UNUSED_MEMORY_IO_START    : u16 = 0xFF4C;
 const UNUSED_MEMORY_IO_END      : u16 = 0xFF80;
 
 const ZERO_PAGE_RAM_START       : u16 = 0xFF80;
-const ZERO_PAGE_RAM_END         : u16 = 0xFFFF;
+const ZERO_PAGE_RAM_END         : u16 = 0xFFFE;
 
 pub struct BUS {
     cartridge : Cartridge,
@@ -84,7 +84,8 @@ impl BUS {
         self.interrupt_handler.step(cycles);
     }
 
-    pub fn read_byte(&self, addr: u16) -> u8 {
+    pub fn read_byte(&self, addr: u16) -> u8 {  
+        quick_fix!({  
         if self.io_registers.boot_rom_enabled() && self.boot_rom.in_region(addr) {
             return self.boot_rom.read_byte(addr);
         } else if self.cartridge.in_region(addr) {
@@ -93,10 +94,10 @@ impl BUS {
             return self.gpu.read_byte(addr);
         } else if self.storage_ram.in_region(addr) | (addr >= INTERNAL_RAM_ECHO_START && addr <= INTERNAL_RAM_ECHO_END) {
             return self.storage_ram.read_byte(addr);
-        } else if self.storage_zero_ram.in_region(addr) {
-            return self.storage_zero_ram.read_byte(addr);
         } else if self.interrupt_handler.in_region(addr) {
             return self.interrupt_handler.read_byte(addr);
+        } else if self.storage_zero_ram.in_region(addr) {
+            return self.storage_zero_ram.read_byte(addr);
         } else if self.joypad.in_region(addr) {
             return self.joypad.read_byte(addr);
         } else if addr == DMA_START_ADDR {
@@ -107,9 +108,14 @@ impl BUS {
             return self.unused_memory.read_byte(addr)
         }
         panic!("Trying to read byte from unrecognized address: 0x{:X}", addr);
+        }, "There are some order-sensitive reads (0xFF0F is the interrupt but it reads into the HRAM (0xFF80-0xFFFE)
+         if the HRAM ifelse comes before it). 
+         It shouldn't be order-dependant. Fix it.");
     }
 
-    pub fn write_byte(&mut self, addr: u16, val: u8) {   
+    pub fn write_byte(&mut self, addr: u16, val: u8) {         
+        quick_fix!({
+
         if self.cartridge.in_region(addr) {
             return self.cartridge.write_byte(addr, val);
         } else if self.gpu.in_region(addr) {
@@ -131,6 +137,9 @@ impl BUS {
         } else {            
             panic!("Trying to write byte 0x{:X} to unrecognized address: 0x{:X}", val, addr);
         }
+        }, "There are some order-sensitive writes (0xFF0F is the interrupt but it reads into the HRAM (0xFF80-0xFFFE)
+        if the HRAM ifelse comes before it). 
+        It shouldn't be order-dependant. Fix it.");
     }
 
     pub fn read_word(&self, addr: u16) -> u16 {

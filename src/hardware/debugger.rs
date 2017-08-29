@@ -125,7 +125,8 @@ macro_rules! hash {
 
 fn create_breakpoints() -> HashSet<u16> {
     hash![      
-        //0x283F
+        //0x0100
+        //0x25D
     ]
 }
 
@@ -133,3 +134,4 @@ fn create_breakpoints() -> HashSet<u16> {
 //0x27e9: Procedure that loads 2F into the tilemaps
 //0x283F: Procedure that loads the tile map!!! (CALLED FROM 0x03EF)
 //0x0405: First refresh of the LCD with good graphics
+// 0x1FD-0x28A Vblank interrupt handle
