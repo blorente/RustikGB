@@ -56,7 +56,6 @@ impl Interrupts {
             self.steps_before_change -= 1;
         } else if self.steps_before_change == 0 {
             self.are_enabled = self.target_enable_state;
-            println!("Interrupt state changed to {:?}", self.are_enabled);
         }
     }
 

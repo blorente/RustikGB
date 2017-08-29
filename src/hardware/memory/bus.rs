@@ -7,6 +7,8 @@ use hardware::registers::Register;
 use hardware::video::screen::Screen;
 use hardware::interrupts::Interrupts;
 use hardware::interrupts::InterruptType;
+use hardware::joypad::Joypad;
+
 use piston_window::*;
 
 const BIOS_START                : u16 = 0x0000;
@@ -39,6 +41,7 @@ pub struct BUS {
     storage_zero_ram: PLAIN_RAM,
     unused_memory: UnusedMemory,
     interrupt_handler: Interrupts,
+    pub joypad: Joypad,
 
     pub screen: Screen,    
     io_registers: IORegs,     
@@ -57,6 +60,7 @@ impl BUS {
                 (UNUSED_MEMORY_IO_START, UNUSED_MEMORY_IO_END)
                 ]),
             interrupt_handler: Interrupts::new(),
+            joypad: Joypad::new(),
 
             io_registers: IORegs::new(),
             screen: Screen::new(window),
@@ -65,6 +69,7 @@ impl BUS {
 
     pub fn step(&mut self, cycles: u32) {
         self.gpu.step(cycles, &mut self.screen, &mut self.interrupt_handler);
+        self.joypad.step(cycles, &mut self.interrupt_handler);
         self.interrupt_handler.step(cycles);
     }
 
@@ -81,6 +86,8 @@ impl BUS {
             return self.storage_zero_ram.read_byte(addr);
         } else if self.interrupt_handler.in_region(addr) {
             return self.interrupt_handler.read_byte(addr);
+        } else if self.joypad.in_region(addr) {
+            return self.joypad.read_byte(addr);
         } else if self.io_registers.in_region(addr) {
             return self.io_registers.read_byte(addr);
         } else if self.unused_memory.in_region(addr) {
@@ -100,6 +107,8 @@ impl BUS {
             self.interrupt_handler.write_byte(addr, val);
         } else if self.storage_zero_ram.in_region(addr) {
             self.storage_zero_ram.write_byte(addr, val);
+        } else if self.joypad.in_region(addr) {
+            self.joypad.write_byte(addr, val);
         } else if self.io_registers.in_region(addr) {
             self.io_registers.write_byte(addr, val);
         } else if self.unused_memory.in_region(addr) {

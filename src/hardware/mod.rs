@@ -17,6 +17,7 @@ pub mod debugger;
 pub mod registers;
 pub mod video;
 pub mod interrupts;
+pub mod joypad;
 
 pub fn hex_print(title: &'static str, data: &[u8], bytes_per_line: u8) {
     println!("{}", title);

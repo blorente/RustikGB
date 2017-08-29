@@ -29,7 +29,14 @@ fn main() {
         if let Some(Button::Keyboard(key)) = e.press_args() {
             if key == Key::F10 {
                 debugger.enter_debug_mode();
+            } else {
+                processor.bus.joypad.process_press(key);
             }
+        }
+
+        if let Some(Button::Keyboard(key)) = e.release_args() {            
+            processor.bus.joypad.process_release(key);
+            
         }
 
         if let Some(args) = e.render_args() {
@@ -60,3 +67,4 @@ fn init_window() -> PistonWindow {
     window.set_ups(60);
     window
 }
+

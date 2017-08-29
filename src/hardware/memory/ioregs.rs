@@ -2,7 +2,7 @@ use hardware::registers::Register;
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::memory_region::BitAccess;
 
-const IO_MEMORY_START           : u16 = 0xFF00;
+const IO_MEMORY_START           : u16 = 0xFF01;
 const IO_MEMORY_END             : u16 = 0xFF3F;
 const BOOT_ROM_ENABLE           : u16 = 0xFF50;
 
