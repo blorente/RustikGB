@@ -642,6 +642,7 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0xD7, inst!("RST 0x10", |cpu, op|{reset(op, cpu); 8})],
         
         [0xD8, inst!("RET C", |cpu, op|{ret_cond(cpu, JumpImmCond::C); 2})],
+        [0xD9, inst!("RETI", |cpu, op|{ret_cond(cpu, JumpImmCond::None); cpu.enable_interrupts_delayed(); 2})],
         [0xDA, inst!("JP C,nn", |cpu,op|{jump_cond_imm(cpu, JumpImmCond::C, JumpImmMode::Immediate); 3})],
         [0xDC, inst!("CALL NC,nn", |cpu, op|{call_cond(cpu, JumpImmCond::NC);3})],
         [0xDF, inst!("RST 0x18", |cpu, op|{reset(op, cpu); 8})],
