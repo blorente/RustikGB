@@ -1,12 +1,12 @@
 macro_rules! quick_fix {
-    ($exec: block, $panic: expr) => {
+    ($exec: block, $panic: expr) => {{
         const QUICK_FIXES_ACTIVE : bool = true;
         if (QUICK_FIXES_ACTIVE) {
             $exec
         } else {
             panic!($panic);
         }
-    };
+    }};
 }
 
 pub mod cpu;
@@ -16,6 +16,7 @@ pub mod memory;
 pub mod debugger;
 pub mod registers;
 pub mod video;
+pub mod interrupts;
 
 pub fn hex_print(title: &'static str, data: &[u8], bytes_per_line: u8) {
     println!("{}", title);

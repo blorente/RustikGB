@@ -3,7 +3,10 @@ use hardware::memory::ioregs::IORegs;
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::memory::plain_ram::PLAIN_RAM;
 use hardware::video::gpu::GPU;
+use hardware::registers::Register;
 use hardware::video::screen::Screen;
+use hardware::interrupts::Interrupts;
+use hardware::interrupts::InterruptType;
 use piston_window::*;
 
 const BIOS_START                : u16 = 0x0000;
@@ -35,7 +38,7 @@ pub struct BUS {
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     unused_memory: UnusedMemory,
-
+    interrupt_handler: Interrupts,
 
     pub screen: Screen,    
     io_registers: IORegs,     
@@ -53,6 +56,7 @@ impl BUS {
                 (UNUSED_MEMORY_LOW_START, UNUSED_MEMORY_LOW_END),
                 (UNUSED_MEMORY_IO_START, UNUSED_MEMORY_IO_END)
                 ]),
+            interrupt_handler: Interrupts::new(),
 
             io_registers: IORegs::new(),
             screen: Screen::new(window),
@@ -61,6 +65,7 @@ impl BUS {
 
     pub fn step(&mut self, cycles: u32) {
         self.gpu.step(cycles, &mut self.screen);
+        self.interrupt_handler.step(cycles);
     }
 
     pub fn read_byte(&self, addr: u16) -> u8 {
@@ -74,6 +79,8 @@ impl BUS {
             return self.storage_ram.read_byte(addr);
         } else if self.storage_zero_ram.in_region(addr) {
             return self.storage_zero_ram.read_byte(addr);
+        } else if self.interrupt_handler.in_region(addr) {
+            return self.interrupt_handler.read_byte(addr);
         } else if self.io_registers.in_region(addr) {
             return self.io_registers.read_byte(addr);
         } else if self.unused_memory.in_region(addr) {
@@ -89,6 +96,8 @@ impl BUS {
             self.gpu.write_byte(addr, val);
         } else if self.storage_ram.in_region(addr) | (addr >= INTERNAL_RAM_ECHO_START && addr <= INTERNAL_RAM_ECHO_END) {
             self.storage_ram.write_byte(addr, val);
+        } else if self.interrupt_handler.in_region(addr) {
+            self.interrupt_handler.write_byte(addr, val);
         } else if self.storage_zero_ram.in_region(addr) {
             self.storage_zero_ram.write_byte(addr, val);
         } else if self.io_registers.in_region(addr) {
@@ -111,6 +120,14 @@ impl BUS {
         let second = (val & 0x00FF) as u8;
         self.write_byte(addr, first);
         self.write_byte(addr + 1, second);
+    }
+
+    pub fn disable_in_next_step(&mut self) {
+        self.interrupt_handler.disable_in_next_step();
+    }
+
+    pub fn enable_in_next_step(&mut self) {
+        self.interrupt_handler.enable_in_next_step();
     }
 }
 

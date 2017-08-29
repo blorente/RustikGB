@@ -71,4 +71,4 @@ pub const ORIGINAL_PALETTE: [[u8; 4]; 4] = [
     [ 15, 56, 15, 255],
 ];
 
-pub const PALETTE_IN_USE: &[[u8; 4]; 4] = &PALETTE_PINKU;
+pub const PALETTE_IN_USE: &[[u8; 4]; 4] = &ORIGINAL_PALETTE;

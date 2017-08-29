@@ -13,21 +13,25 @@ pub struct IORegs {
 
 impl MemoryRegion for IORegs {
     fn read_byte(&self, addr: u16) -> u8 {
+        quick_fix!({
         if addr == BOOT_ROM_ENABLE {
             self.boot_rom_enable.r()
         } else {
             let tru_addr = addr - self.start();
             self.contents[tru_addr as usize].r()
         }
+        }, "IORegs should be gone at some point")
     }
 
     fn write_byte(&mut self, addr: u16, val: u8) {
+        quick_fix!({
         if addr == BOOT_ROM_ENABLE {
             self.boot_rom_enable.w(val)
         } else {
             let tru_addr = addr - self.start();
             self.contents[tru_addr as usize].w(val)
         }
+        }, "IORegs should be gone at some point");
     }
 
     fn in_region(&self, addr: u16) -> bool {

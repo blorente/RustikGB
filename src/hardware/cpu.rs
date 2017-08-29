@@ -204,15 +204,11 @@ impl CPU {
     }
 
     pub fn disable_interrupts_delayed(&mut self) {
-        quick_fix!({
-            println!("Interrupts diabled");
-        }, "Disable Interrupts not implemented");
+        self.bus.disable_in_next_step();        
     }
 
     pub fn enable_interrupts_delayed(&mut self) {
-        quick_fix!({
-            println!("Interrupts enabled");
-        }, "Enable Interrupts not implemented");
+        self.bus.enable_in_next_step();
     }
 
     pub fn push_word(&mut self, val: u16) {
