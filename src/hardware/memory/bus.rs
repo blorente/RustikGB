@@ -8,6 +8,7 @@ use hardware::video::screen::Screen;
 use hardware::interrupts::Interrupts;
 use hardware::interrupts::InterruptType;
 use hardware::joypad::Joypad;
+use hardware::video::gpu_constants::*;
 
 use piston_window::*;
 
@@ -27,6 +28,7 @@ const UNUSED_MEMORY_LOW_START   : u16 = 0xFEA0;
 const UNUSED_MEMORY_LOW_END     : u16 = 0xFEFF;
 
 const DMA_START_ADDR            : u16 = 0xFF46;
+const DMA_CYCLES                : u32 = 162;
 
 const UNUSED_MEMORY_IO_START    : u16 = 0xFF4C;
 const UNUSED_MEMORY_IO_END      : u16 = 0xFF80;
@@ -41,9 +43,12 @@ pub struct BUS {
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     unused_memory: UnusedMemory,
-    dma_start: Register<u8>,
     pub interrupt_handler: Interrupts,
     pub joypad: Joypad,
+
+    dma_start: Register<u8>,
+    dma_target_addr: u16,
+    dma_cycles_remaining: u32,
 
     pub screen: Screen,    
     io_registers: IORegs,     
@@ -63,7 +68,10 @@ impl BUS {
                 ]),
             interrupt_handler: Interrupts::new(),
             joypad: Joypad::new(),
+
             dma_start: Register::new(0x00),
+            dma_target_addr: 0x0,
+            dma_cycles_remaining: 0xFFFF,
 
             io_registers: IORegs::new(),
             screen: Screen::new(window),
@@ -115,7 +123,7 @@ impl BUS {
         } else if self.joypad.in_region(addr) {
             self.joypad.write_byte(addr, val);
         } else if addr == DMA_START_ADDR {
-            panic!("DMA Transfer disabled until it's implemented");
+            self.setup_dma_transfer(val);
         } else if self.io_registers.in_region(addr) {
             self.io_registers.write_byte(addr, val);
         } else if self.unused_memory.in_region(addr) {
@@ -144,6 +152,29 @@ impl BUS {
 
     pub fn enable_in_next_step(&mut self) {
         self.interrupt_handler.enable_in_next_step();
+    }
+
+    fn setup_dma_transfer(&mut self, val: u8) {
+        self.dma_target_addr = (val as u16) << 8;
+        self.dma_cycles_remaining = DMA_CYCLES;
+    }
+
+    fn step_dma(&mut self, cycles: u32) {
+        if self.dma_cycles_remaining == 0xFFFF {return}
+        // Delay until the dma_cycles are complete, then dump memory
+        self.dma_cycles_remaining -= cycles;
+        if self.dma_cycles_remaining < 4 {
+            self.perform_dma();
+            self.dma_cycles_remaining = 0xFFFF;
+        }
+    }
+
+    fn perform_dma(&mut self) {
+        let start_addr = self.dma_target_addr;
+        for i in 0..0xA0 {
+            let data = self.read_byte(start_addr + i);
+            self.write_byte(SPRITE_OAM_START + i, data);
+        }
     }
 }
 
