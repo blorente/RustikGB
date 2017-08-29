@@ -694,6 +694,10 @@ fn test_bit(opcode: u8, cpu: &mut CPU) {
         0b011 => {val = cpu.regs.e.is_bit_set(bit_to_test);}
         0b100 => {val = cpu.regs.h.is_bit_set(bit_to_test);}
         0b101 => {val = cpu.regs.l.is_bit_set(bit_to_test);}
+        0b110 => {
+            let data = cpu.read_byte(cpu.regs.hl());
+            val = (data & (1 << bit_to_test)) > 0;
+        }
         0b111 => {val = cpu.regs.a.is_bit_set(bit_to_test);}
         _ => {panic!("Unrecognized register in bit check instruction {:2X}", opcode)}
     }
@@ -809,7 +813,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x43, inst!("BIT 0,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x44, inst!("BIT 0,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x45, inst!("BIT 0,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x46, inst!("Unimp", |cpu, op|{2})],
+        [0x46, inst!("BIT 0,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x47, inst!("BIT 0,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x48, inst!("BIT 1,B", |cpu, op|{test_bit(op, cpu); 2})],
@@ -818,7 +822,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x4B, inst!("BIT 1,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x4C, inst!("BIT 1,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x4D, inst!("BIT 1,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x4E, inst!("Unimp", |cpu, op|{2})],
+        [0x4E, inst!("BIT 1,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x4F, inst!("BIT 1,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x50, inst!("BIT 2,B", |cpu, op|{test_bit(op, cpu); 2})],
@@ -827,7 +831,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x53, inst!("BIT 2,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x54, inst!("BIT 2,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x55, inst!("BIT 2,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x56, inst!("Unimp", |cpu, op|{2})],
+        [0x56, inst!("BIT 2,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x57, inst!("BIT 2,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x58, inst!("BIT 3,B", |cpu, op|{test_bit(op, cpu); 2})],
@@ -836,7 +840,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x5B, inst!("BIT 3,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x5C, inst!("BIT 3,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x5D, inst!("BIT 3,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x5E, inst!("Unimp", |cpu, op|{2})],
+        [0x5E, inst!("BIT 3,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x5F, inst!("BIT 3,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x60, inst!("BIT 4,B", |cpu, op|{test_bit(op, cpu); 2})],
@@ -845,7 +849,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x63, inst!("BIT 4,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x64, inst!("BIT 4,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x65, inst!("BIT 4,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x66, inst!("Unimp", |cpu, op|{2})],
+        [0x66, inst!("BIT 4,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x67, inst!("BIT 4,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x68, inst!("BIT 5,B", |cpu, op|{test_bit(op, cpu); 2})],
@@ -854,7 +858,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x6B, inst!("BIT 5,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x6C, inst!("BIT 5,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x6D, inst!("BIT 5,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x6E, inst!("Unimp", |cpu, op|{2})],
+        [0x6E, inst!("BIT 5,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x6F, inst!("BIT 5,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x70, inst!("BIT 6,B", |cpu, op|{test_bit(op, cpu); 2})],
@@ -863,7 +867,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x73, inst!("BIT 6,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x74, inst!("BIT 6,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x75, inst!("BIT 6,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x76, inst!("Unimp", |cpu, op|{2})],
+        [0x76, inst!("BIT 6,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x77, inst!("BIT 6,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x78, inst!("BIT 7,B", |cpu, op|{test_bit(op, cpu); 2})],
@@ -872,7 +876,7 @@ fn create_bitwise_isa <'i>() -> Vec<Instruction<'i>> {
         [0x7B, inst!("BIT 7,E", |cpu, op|{test_bit(op, cpu); 2})],
         [0x7C, inst!("BIT 7,H", |cpu, op|{test_bit(op, cpu); 2})],
         [0x7D, inst!("BIT 7,L", |cpu, op|{test_bit(op, cpu); 2})],
-        [0x7E, inst!("Unimp", |cpu, op|{2})],
+        [0x7E, inst!("BIT 7,(HL)", |cpu, op|{test_bit(op, cpu); 2})],
         [0x7F, inst!("BIT 7,A", |cpu, op|{test_bit(op, cpu); 2})],
 
         [0x80, inst!("RES 0,B", |cpu, op|{reset_bit(op, cpu); 2})],
