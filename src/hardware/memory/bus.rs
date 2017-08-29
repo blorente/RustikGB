@@ -26,6 +26,8 @@ const INTERNAL_RAM_ECHO_END     : u16 = 0xFDFF;
 const UNUSED_MEMORY_LOW_START   : u16 = 0xFEA0;
 const UNUSED_MEMORY_LOW_END     : u16 = 0xFEFF;
 
+const DMA_START_ADDR            : u16 = 0xFF46;
+
 const UNUSED_MEMORY_IO_START    : u16 = 0xFF4C;
 const UNUSED_MEMORY_IO_END      : u16 = 0xFF80;
 
@@ -39,6 +41,7 @@ pub struct BUS {
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     unused_memory: UnusedMemory,
+    dma_start: Register<u8>,
     pub interrupt_handler: Interrupts,
     pub joypad: Joypad,
 
@@ -60,6 +63,7 @@ impl BUS {
                 ]),
             interrupt_handler: Interrupts::new(),
             joypad: Joypad::new(),
+            dma_start: Register::new(0x00),
 
             io_registers: IORegs::new(),
             screen: Screen::new(window),
@@ -87,6 +91,8 @@ impl BUS {
             return self.interrupt_handler.read_byte(addr);
         } else if self.joypad.in_region(addr) {
             return self.joypad.read_byte(addr);
+        } else if addr == DMA_START_ADDR {
+            panic!("DMA is write only");
         } else if self.io_registers.in_region(addr) {
             return self.io_registers.read_byte(addr);
         } else if self.unused_memory.in_region(addr) {
@@ -108,6 +114,8 @@ impl BUS {
             self.storage_zero_ram.write_byte(addr, val);
         } else if self.joypad.in_region(addr) {
             self.joypad.write_byte(addr, val);
+        } else if addr == DMA_START_ADDR {
+            panic!("DMA Transfer disabled until it's implemented");
         } else if self.io_registers.in_region(addr) {
             self.io_registers.write_byte(addr, val);
         } else if self.unused_memory.in_region(addr) {

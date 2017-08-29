@@ -27,7 +27,6 @@ pub const SCROLL_Y_ADDR                 : u16 = 0xFF42;
 pub const SCROLL_X_ADDR                 : u16 = 0xFF43;
 pub const LY_COORD_ADDR                 : u16 = 0xFF44;
 pub const LYC_COMPLARE_ADDR             : u16 = 0xFF45;
-pub const DMA_START_ADDR                : u16 = 0xFF46;
 pub const BG_PALLETE_ADDR               : u16 = 0xFF47;
 pub const OBJECT_PALETTE_1_ADDR         : u16 = 0xFF48;
 pub const OBJECT_PALETTE_2_ADDR         : u16 = 0xFF49;

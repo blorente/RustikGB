@@ -31,7 +31,6 @@ pub struct GPU {
     scroll_x:       Register<u8>,
     ly_coord:       Register<u8>,
     lyc_compare:    Register<u8>,
-    dma_start:      Register<u8>,
     bg_palette:     Register<u8>,
     obj_palette_1:  Register<u8>,
     obj_palette_2:  Register<u8>,
@@ -72,7 +71,6 @@ impl GPU {
             scroll_x:       Register::new(0x00),
             ly_coord:       Register::new(0x00),
             lyc_compare:    Register::new(0x00),
-            dma_start:      Register::new(0x00),
             bg_palette:     Register::new(0x00),
             obj_palette_1:  Register::new(0x00),
             obj_palette_2:  Register::new(0x00),
@@ -216,7 +214,6 @@ impl MemoryRegion for GPU {
                 SCROLL_X_ADDR           => {self.scroll_x.r()}
                 LY_COORD_ADDR           => {self.ly_coord.r()}
                 LYC_COMPLARE_ADDR       => {self.lyc_compare.r()}
-                DMA_START_ADDR          => {panic!("DMA is write only");}
                 BG_PALLETE_ADDR         => {self.bg_palette.r()}
                 OBJECT_PALETTE_1_ADDR   => {self.obj_palette_1.r()}
                 OBJECT_PALETTE_2_ADDR   => {self.obj_palette_2.r()}
@@ -242,7 +239,6 @@ impl MemoryRegion for GPU {
                 SCROLL_X_ADDR           => {self.scroll_x.w(val);}
                 LY_COORD_ADDR           => {self.ly_coord.w(0x00);}
                 LYC_COMPLARE_ADDR       => {self.lyc_compare.w(val);}
-                DMA_START_ADDR          => {panic!("DMA Transfer disabled until it's implemented")}
                 BG_PALLETE_ADDR         => {self.bg_palette.w(val);}
                 OBJECT_PALETTE_1_ADDR   => {self.obj_palette_1.w(val);}
                 OBJECT_PALETTE_2_ADDR   => {self.obj_palette_2.w(val);}
@@ -264,7 +260,6 @@ impl MemoryRegion for GPU {
             SCROLL_X_ADDR           => {true}
             LY_COORD_ADDR           => {true}
             LYC_COMPLARE_ADDR       => {true}
-            DMA_START_ADDR          => {true}
             BG_PALLETE_ADDR         => {true}
             OBJECT_PALETTE_1_ADDR   => {true}
             OBJECT_PALETTE_2_ADDR   => {true}
