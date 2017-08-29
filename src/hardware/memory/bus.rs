@@ -64,7 +64,7 @@ impl BUS {
     }
 
     pub fn step(&mut self, cycles: u32) {
-        self.gpu.step(cycles, &mut self.screen);
+        self.gpu.step(cycles, &mut self.screen, &mut self.interrupt_handler);
         self.interrupt_handler.step(cycles);
     }
 

@@ -55,6 +55,12 @@ pub const B_BG_TILE_MAP_SELECT          : u8 = 3;
 
 // LCD Status Register
 pub const B_LYC_COINCIDENCE_INTERRUPT   : u8 = 6;
+pub const B_OAM_INTERRUPT               : u8 = 5;
+pub const B_VBLANK_INTERRUPT            : u8 = 4;
+pub const B_HBLANK_INTERRUPT            : u8 = 3;
+pub const B_LYC_COINCIDENCE_FLAG        : u8 = 2;
+pub const B_LCDC_STATUS_1_FLAG          : u8 = 1;
+pub const B_LCDC_STATUS_0_FLAG          : u8 = 2;
 
 // Palettes
 pub const PALETTE_PINKU: [[u8; 4]; 4] = [

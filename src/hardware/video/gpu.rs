@@ -9,6 +9,8 @@ use hardware::hex_print;
 use hardware::video::gpu_constants::*;
 use hardware::video::tile_set::TileSet;
 use hardware::video::tile_set::Tile;
+use hardware::interrupts::Interrupts;
+use hardware::interrupts::InterruptType;
 
 use std::fmt;
 use rand;
@@ -39,7 +41,7 @@ pub struct GPU {
     debug_color:    [u8; 4]
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum LCDCMode {
     HBLANK  = 0b00,    
     VBLANK  = 0b01,    
@@ -81,15 +83,16 @@ impl GPU {
         }
     }
 
-    pub fn step(&mut self, cycles: u32, screen: &mut Screen) {
+    pub fn step(&mut self, cycles: u32, screen: &mut Screen, interrupt_handler: &mut Interrupts) {
         // If the display is not enabled, don't render
         //if !self.lcd_control.is_bit_set(B_LCD_DISPLAY_ENABLED) {return}
 
         //println!("Mode: {} Cycles: {}", self.lcdc_mode, self.mode_cycles);
-        self.update_mode(cycles, screen);  
+        self.update_mode(cycles, screen, interrupt_handler); 
+        self.generate_interrupts(interrupt_handler); 
     }    
 
-    fn update_mode(&mut self, cycles: u32, screen: &mut Screen) {
+    fn update_mode(&mut self, cycles: u32, screen: &mut Screen, interrupt_handler: &mut Interrupts) {
         self.mode_cycles += cycles;
         match self.lcdc_mode {
             LCDCMode::HBLANK => {                
@@ -97,17 +100,17 @@ impl GPU {
                     self.increase_line();
                     let y = self.ly_coord.r();
                     if self.ly_coord.r() == VBLANK_START_LINE {
-                        self.change_mode_and_interrupt(LCDCMode::VBLANK);
+                        self.change_mode_and_interrupt(LCDCMode::VBLANK, interrupt_handler);
                     } else {                        
                         self.render_scan_line(screen);
-                        self.change_mode_and_interrupt(LCDCMode::OAM);
+                        self.change_mode_and_interrupt(LCDCMode::OAM, interrupt_handler);
                     }
                     self.mode_cycles -= HBLANK_CYCLES;
                 }
             }
             LCDCMode::VBLANK => {
                 if self.ly_coord.r() == VBLANK_END_LINE {
-                    self.change_mode_and_interrupt(LCDCMode::OAM);                   
+                    self.change_mode_and_interrupt(LCDCMode::OAM, interrupt_handler);                   
                 }
                 if self.mode_cycles > CYCLES_PER_LINE {
                     self.increase_line();
@@ -116,13 +119,13 @@ impl GPU {
             }
             LCDCMode::OAM => {
                 if self.need_change_mode(OAM_CYCLES) {
-                    self.change_mode_and_interrupt(LCDCMode::VRAM);
+                    self.change_mode_and_interrupt(LCDCMode::VRAM, interrupt_handler);
                     self.mode_cycles -= OAM_CYCLES;
                 }
             }
             LCDCMode::VRAM => {
                 if self.need_change_mode(VRAM_CYCLES) {
-                    self.change_mode_and_interrupt(LCDCMode::HBLANK);
+                    self.change_mode_and_interrupt(LCDCMode::HBLANK, interrupt_handler);
                     self.mode_cycles -= VRAM_CYCLES;
                 }
             }
@@ -140,16 +143,31 @@ impl GPU {
         //println!("{} Line increased to {}", self.lcdc_mode, self.ly_coord.r());       
 
         // Check the value of LY with LYC register, and request interrupts if necessary
-        if self.ly_coord.r() == self.lyc_compare.r() {
-            self.lcd_status.set_bit(B_LYC_COINCIDENCE_INTERRUPT, true);
-            // TODO: Request a STAT interrupt
-        }
+        self.lcd_status.set_bit(B_LYC_COINCIDENCE_FLAG, self.ly_coord.r() == self.lyc_compare.r());        
     }
 
-    fn change_mode_and_interrupt(&mut self, target: LCDCMode) {
+    fn change_mode_and_interrupt(&mut self, target: LCDCMode, interrupt_handler: &mut Interrupts) {
         //println!("Mode changed to {}", target); 
         self.lcdc_mode = target;
-        // TODO: Interrupts go here
+        if self.lcdc_mode == LCDCMode::VBLANK {
+            interrupt_handler.set_interrupt(InterruptType::VBlank);
+        }
+        let mode = target as u8;
+        self.lcd_status.set_bit(B_LCDC_STATUS_0_FLAG, (mode & 0b01) > 0);
+        self.lcd_status.set_bit(B_LCDC_STATUS_1_FLAG, (mode & 0b10) > 0);
+    }
+
+    fn generate_interrupts(&self, interrupt_handler: &mut Interrupts) {
+        match self.lcdc_mode {
+            LCDCMode::HBLANK => { if self.lcd_status.is_bit_set(B_HBLANK_INTERRUPT) {interrupt_handler.set_interrupt(InterruptType::LCDC)}}
+            LCDCMode::VBLANK => { if self.lcd_status.is_bit_set(B_VBLANK_INTERRUPT) {interrupt_handler.set_interrupt(InterruptType::LCDC)}}
+            LCDCMode::OAM    => { if self.lcd_status.is_bit_set(B_OAM_INTERRUPT)    {interrupt_handler.set_interrupt(InterruptType::LCDC)}}
+            _ => {}
+        }
+        if self.lcd_status.is_bit_set(B_LYC_COINCIDENCE_INTERRUPT) 
+            && self.lcd_status.is_bit_set(B_LYC_COINCIDENCE_FLAG) {
+            interrupt_handler.set_interrupt(InterruptType::LCDC);
+        }
     }
 
     fn render_scan_line(&mut self, screen: &mut Screen) {  
@@ -162,8 +180,7 @@ impl GPU {
                 TILE_MAP_1_START
             } else {
                 TILE_MAP_0_START
-            };
-        let signed_tile_maps: bool;            
+            };           
 
         let tile_y = (((self.ly_coord.r() + self.scroll_y.r()) / 8) % 32) as u16;
         let tile_offset_y = ((self.ly_coord.r() + self.scroll_y.r()) % 8) as u16;
