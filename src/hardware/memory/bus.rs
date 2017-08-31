@@ -44,6 +44,7 @@ pub struct BUS {
     storage_ram: PLAIN_RAM,
     storage_zero_ram: PLAIN_RAM,
     unused_memory: UnusedMemory,
+    cartridge_ram: PLAIN_RAM,
     pub interrupt_handler: Interrupts,
     pub joypad: Joypad,
 
@@ -69,6 +70,7 @@ impl BUS {
                 ]),
             interrupt_handler: Interrupts::new(),
             joypad: Joypad::new(),
+            cartridge_ram: PLAIN_RAM::new(CARTRIDGE_RAM_START, CARTRIDGE_RAM_END),
 
             dma_start: Register::new(0x00),
             dma_target_addr: 0x0,
@@ -82,6 +84,7 @@ impl BUS {
     pub fn step(&mut self, cycles: u32) {
         self.gpu.step(cycles, &mut self.screen, &mut self.interrupt_handler);
         self.joypad.step(cycles, &mut self.interrupt_handler);
+        self.step_dma(cycles);
         self.interrupt_handler.step(cycles);
     }
 
@@ -105,6 +108,8 @@ impl BUS {
             panic!("DMA is write only");
         } else if self.io_registers.in_region(addr) {
             return self.io_registers.read_byte(addr);
+        } else if self.cartridge_ram.in_region(addr) {
+            return self.cartridge_ram.read_byte(addr);
         } else if self.unused_memory.in_region(addr) {
             return self.unused_memory.read_byte(addr)
         }
@@ -133,6 +138,8 @@ impl BUS {
             self.setup_dma_transfer(val);
         } else if self.io_registers.in_region(addr) {
             self.io_registers.write_byte(addr, val);
+        } else if self.cartridge_ram.in_region(addr) {
+            self.cartridge_ram.write_byte(addr, val);
         } else if self.unused_memory.in_region(addr) {
             return self.unused_memory.write_byte(addr, val)
         } else {            
@@ -172,11 +179,11 @@ impl BUS {
     fn step_dma(&mut self, cycles: u32) {
         if self.dma_cycles_remaining == 0xFFFF {return}
         // Delay until the dma_cycles are complete, then dump memory
-        self.dma_cycles_remaining -= cycles;
-        if self.dma_cycles_remaining < 4 {
+        if self.dma_cycles_remaining <= 16 {
             self.perform_dma();
             self.dma_cycles_remaining = 0xFFFF;
         }
+        self.dma_cycles_remaining -= cycles;
     }
 
     fn perform_dma(&mut self) {
