@@ -12,7 +12,7 @@ impl PLAIN_RAM {
         PLAIN_RAM {
             start: start,
             end: end,
-            storage: vec![0x0; end as usize - start as usize + 1]
+            storage: vec![0x0; (end as usize - start as usize) + 1]
         }
     }
 
