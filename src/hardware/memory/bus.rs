@@ -9,6 +9,7 @@ use hardware::interrupts::Interrupts;
 use hardware::interrupts::InterruptType;
 use hardware::joypad::Joypad;
 use hardware::video::gpu_constants::*;
+use hardware::video::sprites::*;
 
 use piston_window::*;
 

@@ -11,6 +11,8 @@ use hardware::video::tile_set::TileSet;
 use hardware::video::tile_set::Tile;
 use hardware::interrupts::Interrupts;
 use hardware::interrupts::InterruptType;
+use hardware::video::sprites::SpriteOAM;
+use hardware::video::sprites::Sprite;
 
 use std::fmt;
 use rand;
@@ -19,7 +21,7 @@ pub struct GPU {
 
     pub tile_data: TileSet,
     tile_maps: PLAIN_RAM,
-    sprite_oam: PLAIN_RAM,
+    sprite_oam: SpriteOAM,
 
     lcdc_mode: LCDCMode,
     mode_cycles: u32,
@@ -60,7 +62,7 @@ impl GPU {
         GPU {
             tile_data: TileSet::new(),
             tile_maps: PLAIN_RAM::new(TILE_MAPS_START, TILE_MAPS_END),
-            sprite_oam: PLAIN_RAM::new(SPRITE_OAM_START, SPRITE_OAM_END),
+            sprite_oam: SpriteOAM::new(),
 
             lcdc_mode: LCDCMode::OAM,
             mode_cycles: 0x0,

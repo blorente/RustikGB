@@ -33,9 +33,6 @@ pub const OBJECT_PALETTE_2_ADDR         : u16 = 0xFF49;
 pub const WINDOW_Y_ADDR                 : u16 = 0xFF4A;
 pub const WINDOW_X_ADDR                 : u16 = 0xFF4B;
 
-pub const SPRITE_OAM_START              : u16 = 0xFE00;
-pub const SPRITE_OAM_END                : u16 = 0xFE9F;
-
 // Timing stuff
 pub const CYCLES_PER_LINE               : u32 =  456;
 pub const HBLANK_CYCLES                 : u32 =  204;
@@ -65,7 +62,7 @@ pub const B_LCDC_STATUS_0_FLAG          : u8 = 2;
 pub const PALETTE_PINKU: [[u8; 4]; 4] = [
     [255, 158, 250, 255],
     [229, 137, 224, 255],
-    [219, 127, 214, 255],
+    [202, 112, 199, 255],
     [ 45,  11,  45, 255],
 ];
 
