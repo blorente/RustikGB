@@ -1,5 +1,6 @@
 use hardware::memory::memory_region::MemoryRegion;
 use hardware::registers::Register;
+use hardware::video::screen::*;
 
 pub const SPRITE_OAM_START              : u16 = 0xFE00;
 pub const SPRITE_OAM_END                : u16 = 0xFE9F;
@@ -27,16 +28,23 @@ impl Sprite {
             palette_0: false,
         }
     }
+
+    pub fn in_valid_position(&self, line: u8) -> bool {        
+        self.coord_y>= line + 16
+        && self.coord_y <= 7 + line + 16
+        && self.coord_x >= 8 
+        && self.coord_x <= (SCREEN_WIDTH as u8) + 8 
+    }
 }
 
 pub struct SpriteOAM {
-    pub sprites: [Sprite; 40]
+    pub sprites: Vec<Sprite>
 }
 
 impl SpriteOAM {
     pub fn new() -> Self {
         SpriteOAM{
-            sprites: [Sprite::new(); 40]
+            sprites: vec![Sprite::new(); 40]
         }
     }
 

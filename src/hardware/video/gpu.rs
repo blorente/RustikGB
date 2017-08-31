@@ -172,6 +172,7 @@ impl GPU {
 
     fn render_scan_line(&mut self, screen: &mut Screen) {  
         self.render_background_line(screen);
+        self.render_sprites_in_line(screen);
     }
 
     fn render_background_line(&mut self, screen: &mut Screen) { 
@@ -196,6 +197,26 @@ impl GPU {
             
             //println!("Get pixel ({}, {}). Color: {:?} Tile: {:4X}", tile_offset_x, tile_offset_y, color, tile_index);
             screen.set_pixel(x as u8, y, color);
+        }
+    }
+
+    fn render_sprites_in_line(&mut self, screen: &mut Screen) {
+        for sprite in &self.sprite_oam.sprites {
+            if sprite.in_valid_position(self.ly_coord.r()) {
+                for line in 0..8 {
+                    let tile_offset_y = 
+                        if sprite.flip_y {(7 - line)}
+                        else {line};
+                    let start_y = sprite.coord_y - 16;
+                    let start_x = sprite.coord_x - 8;
+                    let tile = self.tile_data.tiles[sprite.data_tile as usize];
+                    for pixel in 0..8 {
+                        let tile_offset_x = if sprite.flip_x {7 - pixel} else {pixel};
+                        let color = PALETTE_IN_USE[self.tile_data.get_pixel(&tile, tile_offset_y as u8, tile_offset_x as u8) as usize];
+                        screen.set_pixel(start_x + pixel as u8, start_y + line, color);
+                    }
+                }
+            }
         }
     }
 }
