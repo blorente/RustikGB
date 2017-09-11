@@ -475,6 +475,25 @@ fn add_16(target: &'static str, other: u16, cpu: &mut CPU) {
     cpu.set_flag(CPUFlags::C, (target_val as u32) + (other as u32) + (carry as u32) > 0xFFFF);
 }
 
+fn daa(cpu: &mut CPU) {
+    let mut a = cpu.regs.a.r();
+
+    let mut adjust = if cpu.is_flag_set(CPUFlags::C) { 0x60 } else { 0x00 };
+    if cpu.is_flag_set(CPUFlags::H) { adjust |= 0x06; };
+    if !cpu.is_flag_set(CPUFlags::N) {
+        if a & 0x0F > 0x09 { adjust |= 0x06; };
+        if a > 0x99 { adjust |= 0x60; };
+        a = a.wrapping_add(adjust);
+    } else {
+        a = a.wrapping_sub(adjust);
+    }
+
+    cpu.set_flag(CPUFlags::Z, a == 0);
+    cpu.set_flag(CPUFlags::H, false);
+    cpu.set_flag(CPUFlags::C, adjust >= 0x60);
+    cpu.regs.a.w(a);
+}
+
 #[allow(dead_code)]
 fn create_isa <'i>() -> Vec<Instruction<'i>> {
     pushall!(
@@ -520,7 +539,8 @@ fn create_isa <'i>() -> Vec<Instruction<'i>> {
         [0x24, inst!("INC H", |cpu, op| {inc!(cpu.regs.h, cpu, false); 1})], 
         [0x25, inst!("DEC H", |cpu, op|{dec!(cpu.regs.h, cpu, false); 1})],
         [0x26, inst!("LD H,n", |cpu, op|{load_byte_imm_u8!(cpu.regs.h, cpu); 2})],  
-        
+        [0x27, inst!("DAA", |cpu, op| {daa(cpu); 1})],
+
         [0x28, inst!("JR Z,n", |cpu, op|{if jump_cond_imm(cpu, JumpImmCond::Z, JumpImmMode::IntOffset){3} else {2}})],    
         [0x2A, inst!("LDI A,(HL+)", |cpu, op|{store_hl_into_a(cpu); inc_16!("HL", cpu); 3})],            
         [0x2B, inst!("DEC HL", |cpu, op|{dec_16!("HL", cpu); 2})], 
