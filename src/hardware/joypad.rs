@@ -11,10 +11,10 @@ pub const JOYPAD_ADDR : u16 = 0xFF00;
 
 const B_SELECT_BUTTON    : u8 = 5;
 const B_SELECT_DIRECTION : u8 = 4;
-const B_RIGHT_OR_A       : u8 = 3;
-const B_LEFT_OR_B        : u8 = 2;
-const B_UP_OR_SELECT     : u8 = 1;
-const B_DOWN_OR_START    : u8 = 0;
+const B_DOWN_OR_START    : u8 = 3;
+const B_UP_OR_SELECT     : u8 = 2;
+const B_LEFT_OR_B        : u8 = 1;
+const B_RIGHT_OR_A       : u8 = 0;
 
 enum Button {A, B, Up, Down, Left, Right, Start, Select}
 
